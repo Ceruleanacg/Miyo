@@ -1,8 +1,11 @@
+# coding=utf-8
+
 import tornado.web
 
 import json
 
 from tools.tools import *
+
 
 class BaseRequestHandler(tornado.web.RequestHandler):
 

@@ -65,10 +65,6 @@ class RegisterHandler(BaseRequestHandler):
 
         token = Tools.generate_token(username)
 
-        self.redis.hset(token + TOKEN_SUFFFIX, USERNAME_KEY, user.username)
-        self.redis.hset(token + TOKEN_SUFFFIX, OBJECT_ID_KEY, user.id)
-        self.redis.expire(token + TOKEN_SUFFFIX, 60 * 60 * 24 * 7)
-
         self.write(self.common_response(SUCCESS_CODE, "注册成功!", token=token))
 
 
@@ -86,10 +82,6 @@ class LoginHandler(BaseRequestHandler):
             return self.write(self.common_response(FAILURE_CODE, "密码错误!"))
 
         token = Tools.generate_token(username)
-
-        self.redis.hset(token + TOKEN_SUFFFIX, USERNAME_KEY, user.username)
-        self.redis.hset(token + TOKEN_SUFFFIX, OBJECT_ID_KEY, user.id)
-        self.redis.expire(token + TOKEN_SUFFFIX, 60 * 60 * 24 * 7)
 
         self.write(self.common_response(SUCCESS_CODE, "登录成功!", token=token))
 
