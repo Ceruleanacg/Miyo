@@ -16,4 +16,9 @@ class User(Document):
     province_id = IntField(default=0)
 
 
+class Province(Document):
+    ProID = IntField()
+    ProSort = IntField()
+    name = StringField()
+    ProRemark = StringField()
 

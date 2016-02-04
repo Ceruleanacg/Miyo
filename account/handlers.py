@@ -4,6 +4,7 @@ import re
 
 from base.requestHandler import *
 
+from base.model import Province
 
 class SmscodeHandler(BaseRequestHandler):
 
@@ -178,3 +179,19 @@ class InfoHandler(BaseRequestHandler):
             self.write(self.common_response(SUCCESS_CODE, "用户信息获取成功!", user_dic))
         else:
             self.write(self.common_response(FAILURE_CODE, "用户不存在!"))
+
+
+class ProvinceHandler(BaseRequestHandler):
+    def get(self, *args, **kwargs):
+        token = self.get_argument('token')
+        Tools.verify_token(token)
+
+        provinces = Province.objects().all()
+
+        province_list = []
+
+        for pro in provinces:
+            province_list.append(pro.to_mongo())
+
+        self.write(self.common_response(SUCCESS_CODE, "省份信息获取成功!", province_list))
+
