@@ -3,6 +3,7 @@
 import re
 
 from base.requestHandler import *
+from base.model import Feed
 
 
 class TimelineHandler(BaseRequestHandler):
@@ -10,4 +11,5 @@ class TimelineHandler(BaseRequestHandler):
         token = self.get_argument('token')
         Tools.verify_token(token)
 
-        pass
+        # 等待关注系统完成
+        

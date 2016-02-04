@@ -10,6 +10,7 @@ class User(Document):
     password = StringField(required=True)
     nick_name = StringField()
 
+    # sex : 0男, 1女
     sex = IntField(0, 1, default=0)
     age = IntField(default=0)
 
@@ -21,4 +22,22 @@ class Province(Document):
     ProSort = IntField()
     name = StringField()
     ProRemark = StringField()
+
+
+class Feed(Document):
+    avatar_url = StringField()
+    name = StringField()
+
+    # type : 0新闻, 1动态
+    type = IntField()
+
+    # source_type : 0官网, 1微博, 2推特, 3ins
+    source_type = IntField()
+
+    create_date = DateTimeField()
+
+    head_line = StringField()
+    head_image_url = StringField()
+
+    content_url = StringField()
 
