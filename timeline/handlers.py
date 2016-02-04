@@ -12,4 +12,3 @@ class TimelineHandler(BaseRequestHandler):
         Tools.verify_token(token)
 
         # 等待关注系统完成
-        
