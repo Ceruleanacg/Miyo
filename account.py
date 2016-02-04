@@ -25,7 +25,7 @@ class SmscodeHandler(BaseRequestHandler):
 
             smscode = self.get_smscode()
             self.redis.set(username + SMSCODE_SUFFIX, smscode, ex=60 * 5)
-            self.write(self.common_response(SUCCESS_CODE, "验证码获取成功", smscode=smscode))
+            self.write(self.common_response(SUCCESS_CODE, "验证码获取成功", dict(smscode=smscode)))
 
         else:
             self.write(self.common_response(FAILURE_CODE, "用户名非法!"))
@@ -144,7 +144,6 @@ class PasswordHandler(BaseRequestHandler):
 class InfoHandler(BaseRequestHandler):
     def post(self, *args, **kwargs):
         token = self.get_argument('token')
-
         Tools.verify_token(token)
 
         nick_name = self.get_argument('nick_name')
@@ -172,6 +171,22 @@ class InfoHandler(BaseRequestHandler):
         user.save()
 
         self.write(self.common_response(SUCCESS_CODE, "信息修改成功!"))
+
+    def get(self, *args, **kwargs):
+        token = self.get_argument('token')
+        Tools.verify_token(token)
+
+        user = Tools.get_user_by_token(token)
+
+        # 用户有可能被删除, 需要检查是否存在
+
+        user_dic = user.to_mongo()
+        user_dic.pop('password')
+
+        if user:
+            self.write(self.common_response(SUCCESS_CODE, "用户信息获取成功!", user_dic))
+        else:
+            self.write(self.common_response(FAILURE_CODE, "用户不存在!"))
 
 
 if __name__ == "__main__":

@@ -7,6 +7,9 @@ import redis
 import hashlib
 import time
 
+from json import JSONEncoder
+from mongoengine.fields import ObjectId
+
 from base.config import *
 from base.model import User
 
@@ -63,3 +66,11 @@ class Tools(object):
         m = hashlib.md5()
         m.update(raw_str)
         return m.hexdigest()
+
+
+class JsonEncoder(JSONEncoder):
+    def default(self, obj, **kwargs):
+        if isinstance(obj, ObjectId):
+            return str(obj)
+        else:
+            return JSONEncoder.default(obj, **kwargs)

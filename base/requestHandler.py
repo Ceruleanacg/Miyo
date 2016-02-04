@@ -23,7 +23,7 @@ class BaseRequestHandler(tornado.web.RequestHandler):
             except ValueError:
                 raise tornado.web.HTTPError(400)
 
-    def common_response(self, code, msg, **kwargs):
+    def common_response(self, code, msg, results):
         return json.dumps(dict(code=code,
                                msg=msg,
-                               result=kwargs))
+                               results=results), cls=JsonEncoder)
