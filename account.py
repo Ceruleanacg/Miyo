@@ -145,6 +145,34 @@ class InfoHandler(BaseRequestHandler):
     def post(self, *args, **kwargs):
         token = self.get_argument('token')
 
+        Tools.verify_token(token)
+
+        nick_name = self.get_argument('nick_name')
+        sex = self.get_argument('sex')
+        age = self.get_argument('age')
+        province_id = self.get_argument('province_id')
+
+        if not re.match(NICK_NAME_PATTERN, nick_name):
+            return self.write(self.common_response(FAILURE_CODE, "昵称为4~18位字符!"))
+
+        if not isinstance(sex, int) or sex > 1 or sex < 0:
+            return self.write(self.common_response(FAILURE_CODE, "性别不合法!"))
+
+        if age > 150 or age < 0:
+            return self.write(self.common_response(FAILURE_CODE, "年龄不合法!"))
+
+        if province_id > 34 or province_id < 0:
+            return self.write(self.common_response(FAILURE_CODE, "地区不合法!"))
+
+        user = Tools.get_user_by_token(token)
+        user.nick_name = nick_name
+        user.sex = sex
+        user.age = age
+        user.province_id = province_id
+        user.save()
+
+        self.write(self.common_response(SUCCESS_CODE, "信息修改成功!"))
+
 
 if __name__ == "__main__":
     tornado.options.parse_command_line()
@@ -152,7 +180,9 @@ if __name__ == "__main__":
                                             (r"/register", RegisterHandler),
                                             (r"/login", LoginHandler),
                                             (r"/forget", ForgetHandler),
-                                            (r"/password", PasswordHandler)])
+                                            (r"/password", PasswordHandler),
+                                            (r"/info", InfoHandler)])
+
     http_server = tornado.httpserver.HTTPServer(app)
     http_server.listen(options.port)
     tornado.ioloop.IOLoop.instance().start()

@@ -1,5 +1,7 @@
 # coding=utf-8
 
+import tornado.web
+
 import redis
 
 import hashlib
@@ -26,6 +28,12 @@ class Tools(object):
     def get_token_by_user(cls, user):
         token = cls.redis.get(str(user.id) + ID_TO_TOKEN_SUFFIX)
         return token
+
+    @classmethod
+    def verify_token(cls, token):
+        if not cls.redis.get(token + TOKEN_TO_ID_SUFFIX):
+            raise tornado.web.HTTPError(401)
+
 
     @classmethod
     def has_registered(cls, username):
