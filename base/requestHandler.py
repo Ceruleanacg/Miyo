@@ -14,7 +14,7 @@ class BaseRequestHandler(tornado.web.RequestHandler):
         self.set_header("Content-Type", "application/json")
         self.redis = Redis
 
-    def get_argument(self, name, default=[], strip=True):
+    def get_argument(self, name, default=None, strip=True):
         if self.request.method == "GET":
             return super(BaseRequestHandler, self).get_argument(name)
         else:
@@ -23,7 +23,11 @@ class BaseRequestHandler(tornado.web.RequestHandler):
             except ValueError:
                 raise tornado.web.HTTPError(400)
 
-    def common_response(self, code, msg, results):
+    def common_response(self, code, msg, results=None):
+        if not results:
+            results = dict()
+
         return json.dumps(dict(code=code,
                                msg=msg,
-                               results=results), cls=JsonEncoder)
+                               results=results),
+                          cls=JsonEncoder)

@@ -1,17 +1,8 @@
 # coding=utf-8
 
-import tornado.httpserver
-import tornado.ioloop
-import tornado.options
-import tornado.web
-
-from tornado.options import define, options
-
 import re
 
 from base.requestHandler import *
-
-define("port", default=8000, help="Run on 8000", type=int)
 
 
 class SmscodeHandler(BaseRequestHandler):
@@ -65,7 +56,7 @@ class RegisterHandler(BaseRequestHandler):
 
         token = Tools.generate_token(username)
 
-        self.write(self.common_response(SUCCESS_CODE, "注册成功!", token=token))
+        self.write(self.common_response(SUCCESS_CODE, "注册成功!", dict(token=token)))
 
 
 class LoginHandler(BaseRequestHandler):
@@ -83,7 +74,7 @@ class LoginHandler(BaseRequestHandler):
 
         token = Tools.generate_token(username)
 
-        self.write(self.common_response(SUCCESS_CODE, "登录成功!", token=token))
+        self.write(self.common_response(SUCCESS_CODE, "登录成功!", dict(token=token)))
 
 
 class ForgetHandler(BaseRequestHandler):
@@ -187,17 +178,3 @@ class InfoHandler(BaseRequestHandler):
             self.write(self.common_response(SUCCESS_CODE, "用户信息获取成功!", user_dic))
         else:
             self.write(self.common_response(FAILURE_CODE, "用户不存在!"))
-
-
-if __name__ == "__main__":
-    tornado.options.parse_command_line()
-    app = tornado.web.Application(handlers=[(r"/smscode", SmscodeHandler),
-                                            (r"/register", RegisterHandler),
-                                            (r"/login", LoginHandler),
-                                            (r"/forget", ForgetHandler),
-                                            (r"/password", PasswordHandler),
-                                            (r"/info", InfoHandler)])
-
-    http_server = tornado.httpserver.HTTPServer(app)
-    http_server.listen(options.port)
-    tornado.ioloop.IOLoop.instance().start()
