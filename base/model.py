@@ -41,3 +41,13 @@ class Feed(Document):
 
     content_url = StringField()
 
+
+class News(Document):
+    news_url = StringField()
+
+    # type : zixun咨询, woshouhui握手会
+    type = StringField()
+
+    title = StringField()
+    article = StringField()
+    image_urls = ListField()

@@ -5,18 +5,28 @@
 # See documentation in:
 # http://doc.scrapy.org/en/latest/topics/items.html
 
-import scrapy
+from scrapy import Item, Field
+from scrapy.loader.processors import TakeFirst, Join
 
 
-class NewsItem(scrapy.Item):
-    # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+class SibaNewsItem(Item):
 
+    url = Field(
+        output_processor=TakeFirst()
+    )
 
-class SibaNewsItem(scrapy.Item):
-    news_url = scrapy.Field()
-    type = scrapy.Field()
-    title = scrapy.Field()
-    article = scrapy.Field()
-    image_urls = scrapy.Field()
+    type = Field(
+        output_processor=TakeFirst()
+    )
+
+    title = Field(
+        output_processor=TakeFirst()
+    )
+
+    article = Field(
+        output_processor=Join('。')
+    )
+
+    image_urls = Field(
+        output_processor=TakeFirst()
+    )
