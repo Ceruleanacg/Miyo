@@ -40,13 +40,20 @@ class SibaNewsSpider(CrawlSpider):
             news_type = news_url.split('/')[-4]
             news_title = target.xpath(".//div[@class='s_nt_txt']/text()").extract_first()
             news_article = target.xpath(".//div[@class='s_new_con']/div/span/span/text()").extract()
-            news_image_urls = target.xpath(".//img[contains(@src, 'snh48')]/@src").extract()
+            news_image_urls = target.xpath(".//img[contains(@src, 'newsimg')]/@src").extract()
+
+            news_title = news_title.strip()
+
+            articles = []
+
+            for article in news_article:
+                articles.append(article.strip())
 
             siba_item_loder = ItemLoader(item=SibaNewsItem(), response=response)
             siba_item_loder.add_value('url', news_url)
             siba_item_loder.add_value('type', news_type)
             siba_item_loder.add_value('title', news_title)
-            siba_item_loder.add_value('article', news_article)
+            siba_item_loder.add_value('article', articles)
             siba_item_loder.add_value('image_urls', news_image_urls)
 
             return siba_item_loder.load_item()
