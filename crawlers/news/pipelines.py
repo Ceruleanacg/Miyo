@@ -13,10 +13,10 @@ from scrapy.exceptions import DropItem
 class NewsPipeline(object):
     def process_item(self, item, spider):
         if spider.name == 'siba_news':
-            if not item['news_url']:
+            if not item['url']:
                 raise DropItem("新闻URL缺失!")
 
-            news = News.objects(news_url=item['news_url']).first()
+            news = News.objects(url=item['url']).first()
 
             if not news:
                 news = News(**dict(item))

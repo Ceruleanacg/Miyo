@@ -37,7 +37,7 @@ class SibaNewsSpider(CrawlSpider):
 
         if target:
             news_url = response.url
-            news_type = url.split('/')[-4]
+            news_type = news_url.split('/')[-4]
             news_title = target.xpath(".//div[@class='s_nt_txt']/text()").extract_first()
             news_article = target.xpath(".//div[@class='s_new_con']/div/span/span/text()").extract()
             news_image_urls = target.xpath(".//img[contains(@src, 'snh48')]/@src").extract()

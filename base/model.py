@@ -43,7 +43,7 @@ class Feed(Document):
 
 
 class News(Document):
-    news_url = StringField()
+    url = StringField()
 
     # type : zixun咨询, woshouhui握手会
     type = StringField()

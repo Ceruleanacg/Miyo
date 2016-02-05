@@ -24,9 +24,7 @@ class SibaNewsItem(Item):
     )
 
     article = Field(
-        output_processor=Join('。')
+        output_processor=Join(' ')
     )
 
-    image_urls = Field(
-        output_processor=TakeFirst()
-    )
+    image_urls = Field()
