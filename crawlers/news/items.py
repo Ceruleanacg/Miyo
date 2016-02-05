@@ -9,11 +9,6 @@ from scrapy import Item, Field
 from scrapy.loader.processors import TakeFirst, Join
 
 
-def article_filter(paragraphs):
-        for p in paragraphs:
-            p = p.strip()
-
-
 class SibaNewsItem(Item):
 
     url = Field(
@@ -24,12 +19,20 @@ class SibaNewsItem(Item):
         output_processor=TakeFirst()
     )
 
+    source = Field(
+        output_processor=TakeFirst()
+    )
+
     title = Field(
         output_processor=TakeFirst()
     )
 
     article = Field(
         output_processor=Join('')
+    )
+
+    create_date = Field(
+        output_processor=TakeFirst()
     )
 
     image_urls = Field()

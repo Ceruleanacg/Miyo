@@ -45,9 +45,14 @@ class Feed(Document):
 class News(Document):
     url = StringField()
 
+    create_date = DateTimeField()
+
+    source = StringField()
+
     # type : zixun咨询, woshouhui握手会
     type = StringField()
 
     title = StringField()
     article = StringField()
+
     image_urls = ListField()
