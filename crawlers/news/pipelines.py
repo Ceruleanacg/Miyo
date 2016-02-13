@@ -7,7 +7,10 @@
 
 from base.model import *
 
+import scrapy
+
 from scrapy.exceptions import DropItem
+from scrapy.pipelines.images import ImagesPipeline
 
 
 class NewsPipeline(object):
@@ -22,4 +25,16 @@ class NewsPipeline(object):
                 news = News(**dict(item))
                 news.save()
 
-            return item
+        return item
+
+
+class ImagePipeline(ImagesPipeline):
+    def get_media_requests(self, item, info):
+        for image_url in item['image_urls']:
+            yield scrapy.Request(image_url)
+
+    def item_completed(self, results, item, info):
+        images = [x['path'] for ok, x in results if ok]
+        if images:
+            item['images'] = images
+        return item
