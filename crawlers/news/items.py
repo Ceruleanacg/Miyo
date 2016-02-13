@@ -36,3 +36,9 @@ class SibaNewsItem(Item):
     )
 
     image_urls = Field()
+
+
+class SinaCaptchaItem(Item):
+
+    image_urls = Field()
+    images = Field()

@@ -1,10 +1,14 @@
 # coding=utf-8
 
-from scrapy.spiders import CrawlSpider, Rule
+import thread
+
+import scrapy
+
+from scrapy.spiders import CrawlSpider, Spider, Rule
 from scrapy.linkextractors import LinkExtractor
 from scrapy.loader import ItemLoader
 
-from crawlers.news.items import SibaNewsItem
+from crawlers.news.items import SibaNewsItem, SinaCaptchaItem
 
 from datetime import datetime
 
@@ -63,4 +67,31 @@ class SibaNewsSpider(CrawlSpider):
             siba_item_loder.add_value('image_urls', news_image_urls)
 
             return siba_item_loder.load_item()
+
+
+class CaptchaSpider(Spider):
+    name = 'sina_captcha'
+    allowed_domains = ['weibo.cn']
+    start_urls = ["http://login.weibo.cn/login/"]
+
+    def __init__(self, *args, **kwargs):
+        super(Spider, self).__init__(*args, **kwargs)
+        self.request_count = 0
+
+    def parse(self, response):
+        return self.parse_login_page(response)
+
+    def parse_login_page(self, response):
+
+        captcha_item_loader = ItemLoader(item=SinaCaptchaItem(), response=response)
+
+        captcha_image_urls = response.xpath("//img[contains(@src, 'captcha')]/@crc").extract_first()
+
+        captcha_item_loader.add_value('image_urls', captcha_image_urls)
+
+        yield captcha_item_loader.load_item()
+
+        if ++self.request_count < 100:
+            print self.request_count
+            yield scrapy.Request("http://login.weibo.cn/login/")
 
