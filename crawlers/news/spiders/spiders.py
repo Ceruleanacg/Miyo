@@ -63,3 +63,4 @@ class SibaNewsSpider(CrawlSpider):
             siba_item_loder.add_value('image_urls', news_image_urls)
 
             return siba_item_loder.load_item()
+
