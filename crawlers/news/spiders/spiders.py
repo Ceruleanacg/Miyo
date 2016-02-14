@@ -74,9 +74,7 @@ class CaptchaSpider(Spider):
     allowed_domains = ['weibo.cn']
     start_urls = ["http://login.weibo.cn/login/"]
 
-    def __init__(self, *args, **kwargs):
-        super(Spider, self).__init__(*args, **kwargs)
-        self.request_count = 0
+    request_count = 0
 
     def parse(self, response):
         return self.parse_login_page(response)
@@ -85,13 +83,14 @@ class CaptchaSpider(Spider):
 
         captcha_item_loader = ItemLoader(item=SinaCaptchaItem(), response=response)
 
-        captcha_image_urls = response.xpath("//img[contains(@src, 'captcha')]/@crc").extract_first()
+        captcha_image_url = response.xpath("//img[contains(@src, 'captcha')]/@src").extract_first()
 
-        captcha_item_loader.add_value('image_urls', captcha_image_urls)
+        captcha_item_loader.add_value('image_urls', captcha_image_url)
 
         yield captcha_item_loader.load_item()
 
-        if ++self.request_count < 100:
-            print self.request_count
-            yield scrapy.Request("http://login.weibo.cn/login/")
+        CaptchaSpider.request_count += 1
+
+        if CaptchaSpider.request_count < 100:
+            yield scrapy.Request("http://login.weibo.cn/login/", callback=self.parse, dont_filter=True)
 

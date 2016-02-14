@@ -5,7 +5,10 @@ import tornado.web
 import redis
 
 import hashlib
+import random
 import time
+import math
+import os
 
 import numpy
 
@@ -22,7 +25,7 @@ from base.model import User
 Redis = redis.Redis(host='localhost', port=6379, db=0)
 
 
-class Tools(object):
+class AccountHelper(object):
 
     # redis 引用自 config.py
     redis = Redis
@@ -50,12 +53,12 @@ class Tools(object):
 
     @classmethod
     def generate_token(cls, username):
-        return Tools._generate_token_if_need(username)
+        return cls._generate_token_if_need(username)
 
     @classmethod
     def _generate_token_if_need(cls, username):
         user = User.objects(username=username).first()
-        token = Tools.get_token_by_user(user)
+        token = cls.get_token_by_user(user)
 
         if not token:
             timestamp = time.time()
@@ -65,6 +68,9 @@ class Tools(object):
             cls.redis.set(token + TOKEN_TO_ID_SUFFIX, user.id, ex=60 * 60 * 24 * 7)
 
         return token
+
+
+class Tools(object):
 
     @classmethod
     def md5(cls, raw_str):
@@ -83,18 +89,34 @@ class CaptchaHacker(object):
 
     @classmethod
     def slice(cls, image):
-        ero_image = cls.pretreat(image)
+
+        gray_image = cls.filter_color(image)
+
+        ero_image = cls.pretreat(gray_image)
 
         col_sums = ero_image.sum(axis=0)
 
         cls._get_poi(ero_image, col_sums, 0)
 
-        pil_image = Image.fromarray(ero_image)
+        pil_image = Image.fromarray(image)
+
+        # print cls.pois
 
         for poi in cls.pois:
-            pil_image.crop(poi).show()
+            poi_image = pil_image.crop(poi)
+
+            if not cls.check_if_poi_image_legal(poi_image):
+                continue
+
+            path = os.path.join(os.getcwd(), 'captchas', 'split', Tools.md5(str(random.random())) + '.jpg')
+
+            poi_image.save(path, 'jpeg')
 
         cls.pois = []
+
+    @classmethod
+    def check_if_poi_image_legal(cls, image):
+        return False if image.size[0] < 10 or image.size[0] > 35 or image.size[1] < 10 else True
 
     @classmethod
     def _get_poi(cls, image, col_sums, start_col):
@@ -129,11 +151,13 @@ class CaptchaHacker(object):
                                 top_y = cls._get_top_y(image, left_col, right_col)
                                 bottom_y = cls._get_bottom_y(image, left_col, right_col)
 
-                                poi = (left_col, top_y, right_col, bottom_y)
+                                left_x = left_col
+                                right_x = right_col
 
-                                print poi
+                                poi = (left_x, top_y, right_x, bottom_y)
 
-                                cls.pois.append(poi)
+                                if abs(top_y - bottom_y) > 4:
+                                    cls.pois.append(poi)
 
                                 return cls._get_poi(image, col_sums, right_col + 1)
                 else:
@@ -161,10 +185,38 @@ class CaptchaHacker(object):
 
     @classmethod
     def pretreat(cls, image):
-        image = numpy.where(numpy.logical_or(image < 4, image > 165), 255, image)
+        image = numpy.where(numpy.logical_or(image < 20, image > 128), 255, image)
         ero_image = morphology.grey_erosion(image, size=(1, 1))
         ero_image = 255 - ero_image
         return ero_image
+
+    @classmethod
+    def filter_color(cls, image):
+
+        rgb_image = image.copy()
+
+        for row in xrange(rgb_image.shape[0]):
+            for col in xrange(rgb_image.shape[1]):
+                rgb_vec = rgb_image[row, col]
+
+                left_edge_length = math.sqrt(rgb_vec[0] ** 2 + rgb_vec[1] ** 2 + rgb_vec[2] ** 2)
+                right_edge_length = math.sqrt((rgb_vec[0] - 255) ** 2 + (rgb_vec[1] - 255) ** 2 + (rgb_vec[2] - 255) ** 2)
+                orgin_edge_length = math.sqrt((255 ** 2) * 3)
+
+                p = (left_edge_length + right_edge_length + orgin_edge_length) / 2
+
+                # 海伦公式计算三角形面积
+
+                s_triangle = math.sqrt(p * (p - left_edge_length) * (p - right_edge_length) * (p - orgin_edge_length))
+
+                target_distance = 2 * s_triangle / orgin_edge_length
+
+                if target_distance >= 20:
+                    rgb_image[row, col] = [255, 255, 255]
+
+        Image.fromarray(rgb_image).show()
+
+        return numpy.array(Image.fromarray(rgb_image).convert('L'))
 
 
 class JsonEncoder(JSONEncoder):
@@ -176,4 +228,11 @@ class JsonEncoder(JSONEncoder):
 
 
 if __name__ == '__main__':
-    CaptchaHacker.slice(numpy.array(Image.open('show.png').convert('L')))
+
+    captchas_dir = './captchas/full'
+
+    filenames = os.listdir('./captchas/full')
+
+    for filename in filenames:
+        captchas_path = os.path.join(captchas_dir, filename)
+        CaptchaHacker.slice(numpy.array(Image.open(captchas_path)))

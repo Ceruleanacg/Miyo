@@ -6,6 +6,7 @@ from base.requestHandler import *
 
 from base.model import Province
 
+
 class SmscodeHandler(BaseRequestHandler):
 
     def post(self, *args, **kwargs):
@@ -40,7 +41,7 @@ class RegisterHandler(BaseRequestHandler):
 
         inner_smscode = self.redis.get(username + SMSCODE_SUFFIX)
 
-        if Tools.has_registered(username):
+        if AccountHelper.has_registered(username):
             return self.write(self.common_response(FAILURE_CODE, "该手机号码已经注册!"))
 
         if not inner_smscode or inner_smscode != smscode:
@@ -55,7 +56,7 @@ class RegisterHandler(BaseRequestHandler):
                     password=password)
         user.save()
 
-        token = Tools.generate_token(username)
+        token = AccountHelper.generate_token(username)
 
         self.write(self.common_response(SUCCESS_CODE, "注册成功!", dict(token=token)))
 
@@ -73,7 +74,7 @@ class LoginHandler(BaseRequestHandler):
         if not user.password == password:
             return self.write(self.common_response(FAILURE_CODE, "密码错误!"))
 
-        token = Tools.generate_token(username)
+        token = AccountHelper.generate_token(username)
 
         self.write(self.common_response(SUCCESS_CODE, "登录成功!", dict(token=token)))
 
@@ -136,7 +137,7 @@ class PasswordHandler(BaseRequestHandler):
 class InfoHandler(BaseRequestHandler):
     def post(self, *args, **kwargs):
         token = self.get_argument('token')
-        Tools.verify_token(token)
+        AccountHelper.verify_token(token)
 
         nick_name = self.get_argument('nick_name')
         sex = self.get_argument('sex')
@@ -155,7 +156,7 @@ class InfoHandler(BaseRequestHandler):
         if province_id > 34 or province_id < 0:
             return self.write(self.common_response(FAILURE_CODE, "地区不合法!"))
 
-        user = Tools.get_user_by_token(token)
+        user = AccountHelper.get_user_by_token(token)
         user.nick_name = nick_name
         user.sex = sex
         user.age = age
@@ -166,9 +167,9 @@ class InfoHandler(BaseRequestHandler):
 
     def get(self, *args, **kwargs):
         token = self.get_argument('token')
-        Tools.verify_token(token)
+        AccountHelper.verify_token(token)
 
-        user = Tools.get_user_by_token(token)
+        user = AccountHelper.get_user_by_token(token)
 
         # 用户有可能被删除, 需要检查是否存在
 
@@ -184,7 +185,7 @@ class InfoHandler(BaseRequestHandler):
 class ProvinceHandler(BaseRequestHandler):
     def get(self, *args, **kwargs):
         token = self.get_argument('token')
-        Tools.verify_token(token)
+        AccountHelper.verify_token(token)
 
         provinces = Province.objects().all()
 
