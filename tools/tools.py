@@ -9,6 +9,7 @@ import random
 import time
 import math
 import os
+import re
 
 import numpy
 
@@ -205,6 +206,52 @@ class CaptchaHacker(object):
                 if image[-1 - row, col] > 0:
                     return height - row - 1
 
+    @classmethod
+    def split_capthcas(cls):
+
+        captchas_dir = './captchas/full'
+
+        filenames = os.listdir(captchas_dir)
+
+        for filename in filenames:
+            captchas_path = os.path.join(captchas_dir, filename)
+            cls.slice(numpy.array(Image.open(captchas_path)))
+
+    @classmethod
+    def mark_feature(cls):
+        captchas_dir = './captchas/split'
+        train_dir = './captchas/train'
+
+        filenames = os.listdir(captchas_dir)
+
+        for filename in filenames:
+
+            if filename.find('jpg') < 0:
+                continue
+
+            captchas_path = os.path.join(captchas_dir, filename)
+
+            image = Image.open(captchas_path)
+            image.show()
+
+            save_flag = True
+
+            while True:
+                result = raw_input()
+
+                if re.match("^(\w)$", result):
+                    save_flag = True
+                    break
+                else:
+                    if result == 'esc':
+                        save_flag = False
+                        break
+
+            if save_flag:
+                if not os.path.exists(os.path.join(train_dir, result)):
+                    os.mkdir(os.path.join(train_dir, result))
+                image.save(os.path.join(train_dir, result, filename))
+
 
 class JsonEncoder(JSONEncoder):
     def default(self, obj, **kwargs):
@@ -214,30 +261,5 @@ class JsonEncoder(JSONEncoder):
             return JSONEncoder.default(obj, **kwargs)
 
 
-def split_capthcas():
-
-    captchas_dir = './captchas/full'
-
-    filenames = os.listdir(captchas_dir)
-
-    for filename in filenames:
-        captchas_path = os.path.join(captchas_dir, filename)
-        CaptchaHacker.slice(numpy.array(Image.open(captchas_path)))
-
-
-def mark_feature():
-    captchas_dir = './captchas/split'
-
-    filenames = os.listdir(captchas_dir)
-
-    for filename in filenames:
-        captchas_path = os.path.join(captchas_dir, filename)
-
-        Image.open(captchas_path)
-
-        
-
-
-
 if __name__ == '__main__':
-    pass
+    CaptchaHacker.mark_feature()
