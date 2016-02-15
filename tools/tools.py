@@ -26,6 +26,8 @@ from base.model import User
 
 Redis = redis.Redis(host='localhost', port=6379, db=0)
 
+base_dir = os.path.dirname(__file__)
+
 
 class AccountHelper(object):
 
@@ -83,16 +85,25 @@ class Tools(object):
 
 class CaptchaHacker(object):
 
+    classifier_path = os.path.join(base_dir, 'captchas/classifier/classifier.pkl')
+
     pois = []
 
-    @classmethod
-    def recognize(cls, image):
-        pass
+    recognizer = joblib.load(classifier_path)
 
     @classmethod
-    def slice(cls, image):
+    def recognize(cls, poi_images):
+        captchas = ""
+        for poi_image in poi_images:
+            captchas += cls.recognizer.predict(poi_image).tolist().pop()
+        return captchas
 
-        gray_image = cls.filter_color(image)
+    @classmethod
+    def slice(cls, image, need_save=False):
+
+        mat_image = numpy.array(image)
+
+        gray_image = cls.filter_color(mat_image)
 
         binary_image = numpy.where(numpy.logical_or(gray_image < 30, gray_image > 225), numpy.uint8(255), numpy.uint8(0))
 
@@ -104,7 +115,7 @@ class CaptchaHacker(object):
 
         pil_image = Image.fromarray(gray_image)
 
-        print cls.pois
+        images = []
 
         for poi in cls.pois:
             poi_image = pil_image.crop(poi)
@@ -112,11 +123,17 @@ class CaptchaHacker(object):
             if not cls.check_if_poi_image_legal(poi_image):
                 continue
 
-            path = os.path.join(os.getcwd(), 'captchas', 'split', Tools.md5(str(random.random())) + '.jpg')
+            poi_image = poi_image.resize((12, 20))
 
-            poi_image.resize((12, 20)).save(path, 'jpeg')
+            if need_save:
+                path = os.path.join(base_dir, 'captchas', 'split', Tools.md5(str(random.random())) + '.jpg')
+                poi_image.save(path, 'jpeg')
+            else:
+                images.append(numpy.array(poi_image).reshape(1, -1))
 
         cls.pois = []
+
+        return images
 
     @classmethod
     def filter_color(cls, image):
@@ -133,8 +150,6 @@ class CaptchaHacker(object):
                     rgb_image[row, col] = [255, 255, 255]
 
         gray_image = Image.fromarray(rgb_image).convert('L')
-
-        # gray_image.show()
 
         return numpy.array(gray_image)
 
@@ -208,7 +223,7 @@ class CaptchaHacker(object):
                     return height - row - 1
 
     @classmethod
-    def split_capthcas(cls):
+    def split_captchas(cls):
 
         captchas_dir = './captchas/full'
 
@@ -278,7 +293,7 @@ class CaptchaHacker(object):
         classifier = svm.SVC(kernel='poly', degree=3)
         classifier.fit(data, targets)
 
-        joblib.dump(classifier, './captchas/classifier/classifier.pkl', compress=3)
+        joblib.dump(classifier, cls.classifier_path, compress=3)
 
 
 class JsonEncoder(JSONEncoder):
@@ -287,8 +302,3 @@ class JsonEncoder(JSONEncoder):
             return str(obj)
         else:
             return JSONEncoder.default(obj, **kwargs)
-
-
-if __name__ == '__main__':
-    clf = joblib.load('./captchas/classifier/classifier.pkl')
-    print clf.predict(numpy.array(Image.open('./captchas/split/0ada3e7a4a86d87129c0b55e4de4dc6b.jpg')).reshape((1, -1)))

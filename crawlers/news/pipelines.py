@@ -24,14 +24,24 @@ class NewsPipeline(object):
             if not news:
                 news = News(**dict(item))
                 news.save()
+        elif spider.name == 'sina_star':
+            if not item['name']:
+                raise DropItem("明星名字缺失!")
+
+            star = Star.objects(name=item['name']).first()
+
+            if not star:
+                star = Star(**dict(item))
+                star.save()
 
         return item
 
 
 class ImagePipeline(ImagesPipeline):
     def get_media_requests(self, item, info):
-        for image_url in item['image_urls']:
-            yield scrapy.Request(image_url)
+        if 'image_urls' in item.keys():
+            for image_url in item['image_urls']:
+                yield scrapy.Request(image_url)
 
     def item_completed(self, results, item, info):
         images = [x['path'] for ok, x in results if ok]

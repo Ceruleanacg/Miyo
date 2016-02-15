@@ -42,3 +42,13 @@ class SinaCaptchaItem(Item):
 
     image_urls = Field()
     images = Field()
+
+
+class SinaStarItem(Item):
+    name = Field(
+        output_processor=TakeFirst()
+    )
+
+    avatar_url = Field(
+        output_processor=TakeFirst()
+    )

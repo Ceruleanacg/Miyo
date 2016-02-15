@@ -1,16 +1,129 @@
 # coding=utf-8
 
-import thread
-
 import scrapy
+
+import urllib
+import json
+import time
+import re
 
 from scrapy.spiders import CrawlSpider, Spider, Rule
 from scrapy.linkextractors import LinkExtractor
 from scrapy.loader import ItemLoader
 
-from crawlers.news.items import SibaNewsItem, SinaCaptchaItem
+from crawlers.news.items import SibaNewsItem, SinaCaptchaItem, SinaStarItem
 
 from datetime import datetime
+from PIL import Image
+
+from tools.tools import CaptchaHacker
+
+
+class SinaStarSpider(Spider):
+
+    name = 'sina_star'
+
+    allowed_domains = ['weibo.com',
+                       'weibo.cn']
+
+    try_count = 0
+
+    def start_requests(self):
+        return [scrapy.Request('http://login.weibo.cn/login/', callback=self.parse_login_page)]
+
+    def parse_login_page(self, response):
+
+        form = response.xpath("//form")
+
+        password = form.xpath(".//input[contains(@name, 'password')]/@name").extract_first()
+
+        captcha_url = response.xpath("//img[contains(@src, 'captcha')]/@src").extract_first()
+
+        captcha_images = []
+        captchas = ""
+
+        if captcha_url:
+            captcha_images = CaptchaHacker.slice(Image.open(urllib.urlopen(captcha_url)).convert('RGB'))
+
+        if captcha_images:
+            captchas = CaptchaHacker.recognize(captcha_images)
+
+        if len(captchas) < 4:
+
+            SinaStarSpider.try_count += 1
+
+            if SinaStarSpider.try_count > 3:
+                Image.open(urllib.urlopen(captcha_url)).convert('RGB').show()
+                captchas = raw_input()
+            else:
+                time.sleep(3)
+                return scrapy.Request('http://login.weibo.cn/login/', callback=self.parse_login_page, dont_filter=True)
+
+        return scrapy.FormRequest.from_response(
+            response,
+            formdata={'mobile': 'ceruleanwang@163.com', password: '1597538426b', 'code': captchas},
+            callback=self.parse_login_result
+        )
+
+    def parse_login_result(self, response):
+        if response.url.find('vt') > -1:
+
+            search_word = '人气偶像团体SNH48成员&gender=women&auth=per_vip'
+
+            return scrapy.Request('http://s.weibo.com/user/' + search_word, callback=self.parse_star_result)
+        else:
+
+            SinaStarSpider.try_count += 1
+
+            time.sleep(3)
+
+            return scrapy.Request('http://login.weibo.cn/login/', callback=self.parse_login_page, dont_filter=True)
+
+    def parse_star_result(self, response):
+
+        selector = self.get_star_selector(response, 'pl_personlist')
+
+        star_selectors = selector.xpath("//div[@class='list_person clearfix']")
+
+        items = []
+
+        for star_selector in star_selectors:
+            star_name = star_selector.xpath(".//a[@class='W_texta W_fb']/@title").extract_first()
+            star_avatar_url = star_selector.xpath(".//div[@class='person_pic']/a/img/@src").extract_first()
+
+            print star_name, star_avatar_url
+
+            star_item_loader = ItemLoader(item=SinaStarItem(), response=response)
+            star_item_loader.add_value('name', star_name)
+            star_item_loader.add_value('avatar_url', star_avatar_url)
+
+            items.append(star_item_loader.load_item())
+
+        for item in items:
+            yield item
+
+        next_selector = self.get_star_selector(response, 'WB_cardwrap S_bg2 relative')
+
+        next_url = next_selector.xpath("//a[contains(@class, 'page next')]/@href").extract_first()
+
+        if next_url:
+            yield scrapy.Request('http://s.weibo.com' + next_url, callback=self.parse_star_result)
+
+    def get_star_selector(self, response, content):
+
+        scripts = response.xpath("//script").extract()
+
+        for script in scripts:
+            target_script = script
+            if target_script.find(content) > -1:
+                target_script = re.sub(r"^<script>STK && STK.pageletM && STK.pageletM.view\(", "", target_script)
+                target_script = re.sub(r"\)</script>$", "", target_script)
+
+                model = json.loads(target_script)
+
+                selector = scrapy.Selector(text=model['html'])
+
+                return selector
 
 
 class SibaNewsSpider(CrawlSpider):

@@ -24,7 +24,7 @@ class Province(Document):
     ProRemark = StringField()
 
 
-class Feed(Document):
+class Post(Document):
     avatar_url = StringField()
     name = StringField()
 
@@ -45,14 +45,32 @@ class Feed(Document):
 class News(Document):
     url = StringField()
 
-    create_date = DateTimeField()
-
     source = StringField()
 
-    # type : zixun咨询, woshouhui握手会
+    # type : zixun咨询, woshouhui握手会, ...
     type = StringField()
 
     title = StringField()
+
     article = StringField()
 
+    read_count = IntField()
+
     image_urls = ListField()
+
+    comments = ListField()
+
+    stars = ListField(required=True)
+
+    create_date = DateTimeField()
+
+
+class Star(Document):
+    name = StringField(required=True)
+
+    avatar_url = StringField()
+
+    news = ListField()
+    feed = ListField()
+
+    fans = ListField()
