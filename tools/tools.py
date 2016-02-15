@@ -14,7 +14,8 @@ import re
 import numpy
 
 from PIL import Image
-from sklearn import datasets
+from sklearn import svm
+from sklearn.externals import joblib
 
 from json import JSONEncoder
 from mongoengine.fields import ObjectId
@@ -252,6 +253,33 @@ class CaptchaHacker(object):
                     os.mkdir(os.path.join(train_dir, result))
                 image.save(os.path.join(train_dir, result, filename))
 
+    @classmethod
+    def train(cls):
+        train_dir = './captchas/train'
+
+        images = []
+        targets = []
+
+        for target_name in os.listdir(train_dir):
+            if len(target_name) == 1:
+                for filename in os.listdir(os.path.join(train_dir, target_name)):
+                    if filename.find('jpg') > 0:
+
+                        image = numpy.array(Image.open(os.path.join(train_dir, target_name, filename)))
+
+                        targets.append(target_name)
+                        images.append(image)
+
+        images = numpy.array(images)
+
+        data = images.reshape(images.shape[0], -1)
+        targets = numpy.array(targets)
+
+        classifier = svm.SVC(kernel='poly', degree=3)
+        classifier.fit(data, targets)
+
+        joblib.dump(classifier, './captchas/classifier/classifier.pkl', compress=3)
+
 
 class JsonEncoder(JSONEncoder):
     def default(self, obj, **kwargs):
@@ -262,4 +290,5 @@ class JsonEncoder(JSONEncoder):
 
 
 if __name__ == '__main__':
-    CaptchaHacker.mark_feature()
+    clf = joblib.load('./captchas/classifier/classifier.pkl')
+    print clf.predict(numpy.array(Image.open('./captchas/split/0ada3e7a4a86d87129c0b55e4de4dc6b.jpg')).reshape((1, -1)))
