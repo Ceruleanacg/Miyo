@@ -133,7 +133,7 @@ class SibaNewsSpider(CrawlSpider):
     start_urls = ['http://www.snh48.com/html/allnews/']
 
     parse_regex = '(gongyan|woshouhui|cd|zixun|activity)/201[3-6]/(\d){4}/(.)+'
-    follow_regex = '(\d)+.html'
+    follow_regex = '[1].html'
 
     parse_rule = Rule(
         LinkExtractor(allow=[parse_regex]),
@@ -144,7 +144,7 @@ class SibaNewsSpider(CrawlSpider):
         LinkExtractor(allow=[follow_regex])
     )
 
-    rules = [parse_rule]
+    rules = [parse_rule, follow_rule]
 
     def parse_news(self, response):
         xpaths = response.xpath("//div[contains(@class, 's_new_detail')]")
@@ -206,4 +206,3 @@ class CaptchaSpider(Spider):
 
         if CaptchaSpider.request_count < 100:
             yield scrapy.Request("http://login.weibo.cn/login/", callback=self.parse, dont_filter=True)
-
