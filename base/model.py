@@ -6,8 +6,8 @@ connect(host="mongodb://Shuyu:Wangshuyu1993@localhost/fanidols")
 
 
 class User(Document):
-    username = StringField(required=True)
-    password = StringField(required=True)
+    username = StringField()
+    password = StringField()
     nick_name = StringField()
 
     # sex : 0男, 1女
@@ -15,6 +15,8 @@ class User(Document):
     age = IntField(default=0)
 
     province_id = IntField(default=0)
+
+    following_stars = ListField()
 
 
 class Province(Document):

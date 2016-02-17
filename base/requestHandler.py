@@ -8,7 +8,6 @@ from tools.tools import *
 
 
 class BaseRequestHandler(tornado.web.RequestHandler):
-
     def __init__(self, application, request, **kwargs):
         super(BaseRequestHandler, self).__init__(application, request, **kwargs)
         self.set_header("Content-Type", "application/json")
@@ -27,7 +26,7 @@ class BaseRequestHandler(tornado.web.RequestHandler):
         if not results:
             results = dict()
 
-        return json.dumps(dict(code=code,
-                               msg=msg,
-                               results=results),
-                          cls=JsonEncoder)
+        return self.write(json.dumps(dict(code=code,
+                                          msg=msg,
+                                          results=results),
+                                     cls=JsonEncoder))
