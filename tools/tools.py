@@ -18,6 +18,7 @@ from sklearn import svm
 from sklearn.externals import joblib
 
 from json import JSONEncoder
+from datetime import datetime
 from mongoengine.fields import ObjectId
 
 from base.config import *
@@ -300,5 +301,7 @@ class JsonEncoder(JSONEncoder):
     def default(self, obj, **kwargs):
         if isinstance(obj, ObjectId):
             return str(obj)
+        elif isinstance(obj, datetime):
+            return obj.strftime('%Y-%m-%d %H:%M:%S')
         else:
             return JSONEncoder.default(obj, **kwargs)

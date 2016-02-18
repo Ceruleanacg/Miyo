@@ -1,9 +1,10 @@
 # coding=utf-8
 
 import re
+import datetime
 
 from base.requestHandler import *
-from base.model import User, Star
+from base.model import User, Star, News
 
 
 class FollowHandler(BaseRequestHandler):
@@ -57,3 +58,35 @@ class FollowHandler(BaseRequestHandler):
         user.save()
 
         return self.common_response(SUCCESS_CODE, "取消关注成功")
+
+
+class NewsHandler(BaseRequestHandler):
+    def get(self, *args, **kwargs):
+        token = self.get_argument('token')
+
+        AccountHelper.verify_token(token)
+
+        feed_type = int(self.get_argument('type'))
+
+        last_news_id = self.get_argument('last_id', None)
+
+        last_news = News.objects(id=last_news_id).first() if last_news_id else None
+
+        offset_create_date = last_news.create_date if last_news else datetime.today()
+
+        if feed_type == FeedType.All:
+            pass
+        elif feed_type == FeedType.News or feed_type == FeedType.Post:
+
+            news_query_set = News.objects(type=feed_type,
+                                          create_date__lt=offset_create_date).order_by('-create_date').limit(10)
+            news_list = []
+
+            for news in news_query_set:
+                news_list.append(news.to_mongo())
+
+            return self.common_response(SUCCESS_CODE, "获取新闻成功", news_list)
+
+        else:
+            return self.common_response(FAILURE_CODE, "未知Feed数据类型")
+

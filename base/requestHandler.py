@@ -15,7 +15,7 @@ class BaseRequestHandler(tornado.web.RequestHandler):
 
     def get_argument(self, name, default=None, strip=True):
         if self.request.method == "GET":
-            return super(BaseRequestHandler, self).get_argument(name)
+            return super(BaseRequestHandler, self).get_argument(name, default, strip)
         else:
             try:
                 return json.loads(self.request.body)[name]

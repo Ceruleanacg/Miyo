@@ -26,31 +26,13 @@ class Province(Document):
     ProRemark = StringField()
 
 
-class Post(Document):
-    avatar_url = StringField()
-    name = StringField()
-
-    # type : 0新闻, 1动态
-    type = IntField()
-
-    # source_type : 0官网, 1微博, 2推特, 3ins
-    source_type = IntField()
-
-    create_date = DateTimeField()
-
-    head_line = StringField()
-    head_image_url = StringField()
-
-    content_url = StringField()
-
-
 class News(Document):
     url = StringField()
 
     source = StringField()
 
-    # type : zixun咨询, woshouhui握手会, ...
-    type = StringField()
+    # type : 0: 新闻, 1: 其他
+    type = IntField()
 
     title = StringField()
 
@@ -65,6 +47,10 @@ class News(Document):
     stars = ListField(required=True)
 
     create_date = DateTimeField()
+
+    meta = {
+        'indexes': ['create_date']
+    }
 
 
 class Star(Document):
