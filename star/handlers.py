@@ -72,17 +72,22 @@ class NewsHandler(BaseRequestHandler):
 
         last_news = News.objects(id=last_news_id).first() if last_news_id else None
 
-        offset_create_date = last_news.create_date if last_news else datetime.today()
+        offset_date = last_news.create_date if last_news else datetime.today()
 
         if feed_type == FeedType.All:
-            pass
-        elif feed_type == FeedType.News or feed_type == FeedType.Post:
 
-            news_query_set = News.objects(type=feed_type,
-                                          create_date__lt=offset_create_date).order_by('-create_date').limit(10)
+            query_set = News.objects(create_date__lt=offset_date).order_by('-create_date').limit(15)
             news_list = []
 
-            for news in news_query_set:
+            for news in query_set:
+                news_list.append(news.to_mongo())
+
+        elif feed_type == FeedType.News or feed_type == FeedType.Post:
+
+            query_set = News.objects(type=feed_type, create_date__lt=offset_date).order_by('-create_date').limit(15)
+            news_list = []
+
+            for news in query_set:
                 news_list.append(news.to_mongo())
 
             return self.common_response(SUCCESS_CODE, "获取新闻成功", news_list)
