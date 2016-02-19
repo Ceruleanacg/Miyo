@@ -58,6 +58,8 @@ class Star(Document):
 
     avatar_url = StringField()
 
+    weibo_url = StringField()
+
     news = ListField()
     feed = ListField()
 

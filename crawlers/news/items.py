@@ -9,7 +9,7 @@ from scrapy import Item, Field
 from scrapy.loader.processors import TakeFirst, Join
 
 
-class SibaNewsItem(Item):
+class NewsItem(Item):
 
     url = Field(
         output_processor=TakeFirst()
@@ -50,5 +50,9 @@ class SinaStarItem(Item):
     )
 
     avatar_url = Field(
+        output_processor=TakeFirst()
+    )
+
+    weibo_url = Field(
         output_processor=TakeFirst()
     )

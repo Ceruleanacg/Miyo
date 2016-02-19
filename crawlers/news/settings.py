@@ -37,10 +37,11 @@ CONCURRENT_REQUESTS=5
 # TELNETCONSOLE_ENABLED=False
 
 # Override the default request headers:
-# DEFAULT_REQUEST_HEADERS = {
-#   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-#   'Accept-Language': 'en',
-# }
+DEFAULT_REQUEST_HEADERS = {
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+  'Accept-Encoding': 'gzip, deflate, sdch',
+  'Accept-Language': 'zh-CN,zh;q=0.8,en;q=0.6',
+}
 
 # Enable or disable spider middlewares
 # See http://scrapy.readthedocs.org/en/latest/topics/spider-middleware.html
@@ -72,7 +73,7 @@ ITEM_PIPELINES = {
 # NOTE: AutoThrottle will honour the standard settings for concurrency and delay
 AUTOTHROTTLE_ENABLED = True
 # The initial download delay
-AUTOTHROTTLE_START_DELAY = 2
+AUTOTHROTTLE_START_DELAY = 4
 # The maximum download delay to be set in case of high latencies
 AUTOTHROTTLE_MAX_DELAY = 60
 # Enable showing throttling stats for every response received:

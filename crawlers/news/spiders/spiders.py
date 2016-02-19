@@ -6,17 +6,130 @@ import urllib
 import json
 import time
 import re
+import os
 
 from scrapy.spiders import CrawlSpider, Spider, Rule
 from scrapy.linkextractors import LinkExtractor
 from scrapy.loader import ItemLoader
 
-from crawlers.news.items import SibaNewsItem, SinaCaptchaItem, SinaStarItem
+from crawlers.news.items import NewsItem, SinaCaptchaItem, SinaStarItem
 
 from datetime import datetime
 from PIL import Image
 
 from tools.tools import CaptchaHacker
+
+cur_path = os.path.dirname(__file__)
+
+sina_cookies = json.load(open(os.path.join(cur_path, 'sina_cookie.json')))
+
+
+def get_captcha(captcha_url):
+
+    captcha_images = []
+
+    captchas = ""
+
+    if captcha_url:
+        captcha_images = CaptchaHacker.slice(Image.open(urllib.urlopen(captcha_url)).convert('RGB'))
+
+    if captcha_images:
+        captchas = CaptchaHacker.recognize(captcha_images)
+
+    return captchas
+
+
+class SinaBaseSpider(Spider):
+
+    allowed_domains = ['weibo.com',
+                       'weibo.cn']
+
+    try_count = 0
+
+
+class SinaFeedSpider(Spider):
+
+    name = 'sina_feed'
+
+    allowed_domains = ['weibo.com',
+                       'weibo.cn']
+
+    try_count = 0
+
+    parms = {
+        'ajwvr': '6',
+        'domain': '100505',
+        'profile_ftype': '1',
+        'is_all': '1',
+        'pre_page': '0',
+        'page': '1',
+        'id': '1004065228056212',
+        'script_uri': '/u/5228056212',
+        'feed_type': '0'
+    }
+
+    def start_requests(self):
+        return [scrapy.FormRequest('http://weibo.com/p/aj/v6/mblog/mbloglist',
+                                   cookies=sina_cookies,
+                                   method='GET',
+                                   formdata=SinaFeedSpider.parms,
+                                   callback=self.parse_feed)]
+
+    def parse_login_page(self, response):
+
+        form = response.xpath("//form")
+
+        password = form.xpath(".//input[contains(@name, 'password')]/@name").extract_first()
+
+        captcha_url = response.xpath("//img[contains(@src, 'captcha')]/@src").extract_first()
+
+        captchas = get_captcha(captcha_url)
+
+        if len(captchas) < 4:
+
+            SinaStarSpider.try_count += 1
+
+            if SinaStarSpider.try_count > 3:
+                Image.open(urllib.urlopen(captcha_url)).convert('RGB').show()
+                captchas = raw_input()
+            else:
+                time.sleep(3)
+                return scrapy.Request('http://login.weibo.cn/login/', callback=self.parse_login_page, dont_filter=True)
+
+        return scrapy.FormRequest.from_response(
+            response,
+            formdata={'mobile': 'ceruleanwang@163.com', password: '1597538426b', 'code': captchas},
+            callback=self.parse_login_result
+        )
+
+    def parse_login_result(self, response):
+        if response.url.find('PHPSESSID') > -1:
+            return [scrapy.FormRequest('http://weibo.com/p/aj/v6/mblog/mbloglist',
+                                       method='GET',
+                                       formdata=SinaFeedSpider.parms,
+                                       callback=self.parse_feed,
+                                       dont_filter=True)]
+        else:
+
+            SinaStarSpider.try_count += 1
+
+            time.sleep(4)
+
+            return scrapy.Request('http://login.weibo.cn/login/', callback=self.parse_login_page, dont_filter=True)
+
+    def parse_feed(self, response):
+        if response.url.find('passport') > -1:
+            return scrapy.Request('http://login.weibo.cn/login/', callback=self.parse_login_page)
+        else:
+
+            doc = json.loads(response.body)['data']
+
+            print doc
+
+            cookies = get_cookies(response)
+
+            if sina_cookies != cookies:
+                json.dump(cookies, open(os.path.join(cur_path, 'sina_cookie.json'), 'w'))
 
 
 class SinaStarSpider(Spider):
@@ -29,7 +142,8 @@ class SinaStarSpider(Spider):
     try_count = 0
 
     def start_requests(self):
-        return [scrapy.Request('http://login.weibo.cn/login/', callback=self.parse_login_page)]
+        search_word = '人气偶像团体SNH48成员&gender=women&auth=per_vip'
+        return [scrapy.Request('http://s.weibo.com/user/' + search_word, callback=self.parse_star_result)]
 
     def parse_login_page(self, response):
 
@@ -80,6 +194,12 @@ class SinaStarSpider(Spider):
             return scrapy.Request('http://login.weibo.cn/login/', callback=self.parse_login_page, dont_filter=True)
 
     def parse_star_result(self, response):
+        if response.url.find('passport') > -1:
+            yield scrapy.FormRequest.from_response(
+                response,
+                formdata={'mobile': 'ceruleanwang@163.com', password: '1597538426b', 'code': captchas},
+                callback=self.parse_login_result
+        )
 
         selector = self.get_star_selector(response, 'pl_personlist')
 
@@ -152,7 +272,7 @@ class SibaNewsSpider(CrawlSpider):
 
         if target:
             news_url = response.url
-            news_type = news_url.split('/')[-4]
+            news_type = 0
             news_title = target.xpath(".//div[@class='s_nt_txt']/text()").extract_first()
             news_article = target.xpath(".//div[@class='s_new_con']/div/span/span/text()").extract()
             news_image_urls = target.xpath(".//img[contains(@src, 'newsimg')]/@src").extract()
@@ -170,7 +290,7 @@ class SibaNewsSpider(CrawlSpider):
             for article in news_article:
                 articles.append(article.strip())
 
-            siba_item_loder = ItemLoader(item=SibaNewsItem(), response=response)
+            siba_item_loder = ItemLoader(item=NewsItem(), response=response)
             siba_item_loder.add_value('url', news_url)
             siba_item_loder.add_value('type', news_type)
             siba_item_loder.add_value('source', "官网")
