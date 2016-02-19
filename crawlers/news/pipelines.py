@@ -45,6 +45,9 @@ class NewsPipeline(object):
 
                 star = Star.objects(weibo_url=weibo_url).first()
 
+                if not star:
+                    raise DropItem("无法匹配新闻对应的明星!")
+
                 feed = News(**dict(item))
 
                 feed.stars.append(star.id)
@@ -77,3 +80,4 @@ class ImagePipeline(ImagesPipeline):
         if images:
             item['images'] = images
         return item
+

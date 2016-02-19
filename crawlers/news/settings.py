@@ -20,7 +20,7 @@ IMAGES_STORE = '../tools/captchas/'
 # USER_AGENT = 'news (+http://www.yourdomain.com)'
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-CONCURRENT_REQUESTS=5
+CONCURRENT_REQUESTS=3
 
 # Configure a delay for requests for the same website (default: 0)
 # See http://scrapy.readthedocs.org/en/latest/topics/settings.html#download-delay

@@ -74,17 +74,12 @@ class NewsHandler(BaseRequestHandler):
 
         offset_date = last_news.create_date if last_news else datetime.today()
 
-        if feed_type == FeedType.All:
+        query_parms = dict(create_date__lt=offset_date)
 
-            query_set = News.objects(create_date__lt=offset_date).order_by('-create_date').limit(15)
-            news_list = []
+        if feed_type == FeedType.News or feed_type == FeedType.Post:
+            query_parms['type'] = feed_type
 
-            for news in query_set:
-                news_list.append(news.to_mongo())
-
-        elif feed_type == FeedType.News or feed_type == FeedType.Post:
-
-            query_set = News.objects(type=feed_type, create_date__lt=offset_date).order_by('-create_date').limit(15)
+            query_set = News.objects(**query_parms).order_by('-create_date').limit(15)
             news_list = []
 
             for news in query_set:

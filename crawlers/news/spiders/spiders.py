@@ -128,18 +128,13 @@ class SinaFeedSpider(SinaBaseSpider):
         return requests
 
     def start_requests(self):
-        # return self.generate_requests()
-        return [scrapy.FormRequest('http://weibo.com/u/5228056212',
-                                   cookies=self.sina_cookies,
-                                   method='GET',
-                                   formdata=SinaFeedSpider.parms,
-                                   callback=self.parse_feed)]
+        return self.generate_requests()
 
     def parse_login_result(self, response):
         if not super(SinaFeedSpider, self).parse_login_result(response):
             return self.login()
 
-        # return self.generate_requests()
+        return self.generate_requests()
 
     def parse_feed(self, response):
         if response.url.find('passport') > -1:
