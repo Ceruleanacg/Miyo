@@ -1,4 +1,5 @@
 # coding=utf-8
+from abc import abstractmethod
 
 import scrapy
 
@@ -19,24 +20,7 @@ from PIL import Image
 
 from tools.tools import CaptchaHacker
 
-cur_path = os.path.dirname(__file__)
-
-sina_cookies = json.load(open(os.path.join(cur_path, 'sina_cookie.json')))
-
-
-def get_captcha(captcha_url):
-
-    captcha_images = []
-
-    captchas = ""
-
-    if captcha_url:
-        captcha_images = CaptchaHacker.slice(Image.open(urllib.urlopen(captcha_url)).convert('RGB'))
-
-    if captcha_images:
-        captchas = CaptchaHacker.recognize(captcha_images)
-
-    return captchas
+cur_dir_path = os.path.dirname(__file__)
 
 
 class SinaBaseSpider(Spider):
@@ -44,10 +28,79 @@ class SinaBaseSpider(Spider):
     allowed_domains = ['weibo.com',
                        'weibo.cn']
 
-    try_count = 0
+    captcha_try_count = 0
+
+    def __init__(self):
+        super(SinaBaseSpider, self).__init__()
+        self.sina_cookies = json.load(open(os.path.join(cur_dir_path, 'sina_cookie.json')))
+        self.try_count = 0
+
+    def login(self):
+        return scrapy.Request('http://login.weibo.cn/login/', callback=self.parse_login_page, dont_filter=True)
+
+    def parse_login_page(self, response):
+
+        form = response.xpath("//form")
+
+        password = form.xpath(".//input[contains(@name, 'password')]/@name").extract_first()
+
+        captcha_url = response.xpath("//img[contains(@src, 'captcha')]/@src").extract_first()
+
+        captchas = self.get_captcha(captcha_url)
+
+        if len(captchas) < 4:
+
+            SinaBaseSpider.captcha_try_count += 1
+
+            # 如果识别算法失败超过 3 次, 则人工识别
+
+            if SinaBaseSpider.captcha_try_count > 3:
+                Image.open(urllib.urlopen(captcha_url)).convert('RGB').show()
+                captchas = raw_input()
+            else:
+                time.sleep(3)
+                return self.login()
+
+        return scrapy.FormRequest.from_response(
+            response,
+            formdata={'mobile': 'ceruleanwang@163.com', password: '1597538426b', 'code': captchas},
+            callback=self.parse_login_result
+        )
+
+    def parse_login_result(self, response):
+        return True if response.url.find('PHPSESSID') > -1 else False
+
+    def get_and_save_cookies_if_need(self, response):
+        cookies = response.request.headers['Cookie'].split(';')
+        cookies_dic = dict()
+
+        for cookie in cookies:
+            key = cookie.split('=')[0]
+            value = cookie.split('=')[1]
+            cookies_dic[key] = value
+
+        if self.sina_cookies != cookies_dic:
+            json.dump(cookies_dic, open(os.path.join(cur_dir_path, 'sina_cookie.json'), 'w'))
+
+        return cookies_dic
+
+    @staticmethod
+    def get_captcha(captcha_url):
+
+        captcha_images = []
+
+        captchas = ""
+
+        if captcha_url:
+            captcha_images = CaptchaHacker.slice(Image.open(urllib.urlopen(captcha_url)).convert('RGB'))
+
+        if captcha_images:
+            captchas = CaptchaHacker.recognize(captcha_images)
+
+        return captchas
 
 
-class SinaFeedSpider(Spider):
+class SinaFeedSpider(SinaBaseSpider):
 
     name = 'sina_feed'
 
@@ -70,66 +123,36 @@ class SinaFeedSpider(Spider):
 
     def start_requests(self):
         return [scrapy.FormRequest('http://weibo.com/p/aj/v6/mblog/mbloglist',
-                                   cookies=sina_cookies,
+                                   cookies=self.sina_cookies,
                                    method='GET',
                                    formdata=SinaFeedSpider.parms,
                                    callback=self.parse_feed)]
 
-    def parse_login_page(self, response):
-
-        form = response.xpath("//form")
-
-        password = form.xpath(".//input[contains(@name, 'password')]/@name").extract_first()
-
-        captcha_url = response.xpath("//img[contains(@src, 'captcha')]/@src").extract_first()
-
-        captchas = get_captcha(captcha_url)
-
-        if len(captchas) < 4:
-
-            SinaStarSpider.try_count += 1
-
-            if SinaStarSpider.try_count > 3:
-                Image.open(urllib.urlopen(captcha_url)).convert('RGB').show()
-                captchas = raw_input()
-            else:
-                time.sleep(3)
-                return scrapy.Request('http://login.weibo.cn/login/', callback=self.parse_login_page, dont_filter=True)
-
-        return scrapy.FormRequest.from_response(
-            response,
-            formdata={'mobile': 'ceruleanwang@163.com', password: '1597538426b', 'code': captchas},
-            callback=self.parse_login_result
-        )
-
     def parse_login_result(self, response):
-        if response.url.find('PHPSESSID') > -1:
-            return [scrapy.FormRequest('http://weibo.com/p/aj/v6/mblog/mbloglist',
+        success = super(SinaFeedSpider, self).parse_login_result(response)
+        if success:
+
+            weibo_url = 'http://weibo.com/p/aj/v6/mblog/mbloglist'
+
+            return [scrapy.FormRequest(weibo_url,
                                        method='GET',
                                        formdata=SinaFeedSpider.parms,
                                        callback=self.parse_feed,
                                        dont_filter=True)]
         else:
-
-            SinaStarSpider.try_count += 1
-
-            time.sleep(4)
-
-            return scrapy.Request('http://login.weibo.cn/login/', callback=self.parse_login_page, dont_filter=True)
+            return self.login()
 
     def parse_feed(self, response):
         if response.url.find('passport') > -1:
-            return scrapy.Request('http://login.weibo.cn/login/', callback=self.parse_login_page)
+            return self.login()
         else:
+
+            self.get_and_save_cookies_if_need(response)
 
             doc = json.loads(response.body)['data']
 
             print doc
 
-            cookies = get_cookies(response)
-
-            if sina_cookies != cookies:
-                json.dump(cookies, open(os.path.join(cur_path, 'sina_cookie.json'), 'w'))
 
 
 class SinaStarSpider(Spider):
