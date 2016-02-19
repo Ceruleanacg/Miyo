@@ -32,6 +32,27 @@ class NewsPipeline(object):
                 star.news.append(news.id)
                 star.save()
 
+        elif spider.name == 'sina_feed':
+            if not item['url']:
+                raise DropItem("微博URL缺失!")
+
+            feed = News.objects(url=item['url']).first()
+
+            if not feed:
+                url_parts = item['url'].split('/')
+
+                weibo_url = "http://" + url_parts[2] + "/u/" + url_parts[3]
+
+                star = Star.objects(weibo_url=weibo_url).first()
+
+                feed = News(**dict(item))
+
+                feed.stars.append(star.id)
+                feed.save()
+
+                star.news.append(feed.id)
+                star.save()
+
         elif spider.name == 'sina_star':
             if not item['name']:
                 raise DropItem("明星名字缺失!")

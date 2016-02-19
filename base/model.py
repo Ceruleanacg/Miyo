@@ -61,6 +61,4 @@ class Star(Document):
     weibo_url = StringField()
 
     news = ListField()
-    feed = ListField()
-
     fans = ListField()

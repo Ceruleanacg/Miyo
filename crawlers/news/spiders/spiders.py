@@ -1,5 +1,4 @@
 # coding=utf-8
-from abc import abstractmethod
 
 import scrapy
 
@@ -19,6 +18,7 @@ from datetime import datetime
 from PIL import Image
 
 from tools.tools import CaptchaHacker
+from base.model import Star
 
 cur_dir_path = os.path.dirname(__file__)
 
@@ -29,6 +29,8 @@ class SinaBaseSpider(Spider):
                        'weibo.cn']
 
     captcha_try_count = 0
+
+    has_saved_cookie_flag = False
 
     def __init__(self):
         super(SinaBaseSpider, self).__init__()
@@ -70,7 +72,10 @@ class SinaBaseSpider(Spider):
     def parse_login_result(self, response):
         return True if response.url.find('PHPSESSID') > -1 else False
 
-    def get_and_save_cookies_if_need(self, response):
+    def save_cookies_if_need(self, response):
+        if SinaBaseSpider.has_saved_cookie_flag:
+            return
+
         cookies = response.request.headers['Cookie'].split(';')
         cookies_dic = dict()
 
@@ -81,8 +86,7 @@ class SinaBaseSpider(Spider):
 
         if self.sina_cookies != cookies_dic:
             json.dump(cookies_dic, open(os.path.join(cur_dir_path, 'sina_cookie.json'), 'w'))
-
-        return cookies_dic
+            SinaBaseSpider.has_saved_cookie_flag = True
 
     @staticmethod
     def get_captcha(captcha_url):
@@ -105,19 +109,27 @@ class SinaFeedSpider(SinaBaseSpider):
     name = 'sina_feed'
 
     parms = {
-        'ajwvr': '6',
-        'domain': '100505',
         'profile_ftype': '1',
-        'is_all': '1',
-        'pre_page': '0',
-        'page': '1',
-        'id': '1004065228056212',
-        'script_uri': '/u/5228056212',
-        'feed_type': '0'
+        'is_all': '1'
     }
 
+    def generate_requests(self):
+        stars = Star.objects()
+
+        requests = []
+
+        for star in stars:
+            requests.append(scrapy.FormRequest(star.weibo_url,
+                                               cookies=self.sina_cookies,
+                                               method='GET',
+                                               formdata=SinaFeedSpider.parms,
+                                               callback=self.parse_feed))
+
+        return requests
+
     def start_requests(self):
-        return [scrapy.FormRequest('http://weibo.com/p/aj/v6/mblog/mbloglist',
+        # return self.generate_requests()
+        return [scrapy.FormRequest('http://weibo.com/u/5228056212',
                                    cookies=self.sina_cookies,
                                    method='GET',
                                    formdata=SinaFeedSpider.parms,
@@ -127,24 +139,62 @@ class SinaFeedSpider(SinaBaseSpider):
         if not super(SinaFeedSpider, self).parse_login_result(response):
             return self.login()
 
-        weibo_url = 'http://weibo.com/p/aj/v6/mblog/mbloglist'
-
-        return [scrapy.FormRequest(weibo_url,
-                                   method='GET',
-                                   formdata=SinaFeedSpider.parms,
-                                   callback=self.parse_feed,
-                                   dont_filter=True)]
+        # return self.generate_requests()
 
     def parse_feed(self, response):
         if response.url.find('passport') > -1:
-            return self.login()
+            yield self.login()
 
-        self.get_and_save_cookies_if_need(response)
+        self.save_cookies_if_need(response)
 
-        doc = json.loads(response.body)['data']
+        selector = self.get_feed_selector(response, 'WB_feed WB_feed_profile')
 
-        print doc
+        feed_selectors = selector.xpath(".//div[@class='WB_detail']")
 
+        for feed_selector in feed_selectors:
+            feed_url = "http://weibo.com" + feed_selector.xpath(".//div[@class='WB_from S_txt2']/a[1]/@href").extract_first()
+            feed_type = 1
+            feed_source = "微博"
+            feed_title = "".join(feed_selector.xpath(".//div[@class='WB_text W_f14']/text()").extract())
+            feed_image_urls = feed_selector.xpath(".//img[contains(@src, 'square')]/@src").extract()
+            feed_article = ""
+            feed_create_date = feed_selector.xpath(".//div[@class='WB_from S_txt2']/a[1]/@title").extract_first() + ":00"
+
+            square_image_count = len(feed_image_urls)
+
+            for index in xrange(square_image_count):
+                feed_image_urls.append(feed_image_urls[index].replace("square", "bmiddle"))
+
+            feed_title = feed_title.lstrip().rstrip()
+
+            feed_item_loder = ItemLoader(item=NewsItem(), response=response)
+            feed_item_loder.add_value('url', feed_url)
+            feed_item_loder.add_value('type', feed_type)
+            feed_item_loder.add_value('source', feed_source)
+            feed_item_loder.add_value('title', feed_title)
+            feed_item_loder.add_value('article', feed_article)
+            feed_item_loder.add_value('create_date', datetime.strptime(feed_create_date, "%Y-%m-%d %H:%M:%S"))
+            feed_item_loder.add_value('image_urls', feed_image_urls)
+
+            item = feed_item_loder.load_item()
+
+            yield item
+
+    @staticmethod
+    def get_feed_selector(response, content):
+        scripts = response.xpath("//script").extract()
+
+        for script in scripts:
+            target_script = script
+            if target_script.find(content) > -1:
+                target_script = re.sub(r"^<script>FM.view\(", "", target_script)
+                target_script = re.sub(r"\)</script>", "", target_script)
+
+                model = json.loads(target_script)
+
+                selector = scrapy.Selector(text=model['html'])
+
+                return selector
 
 
 class SinaStarSpider(SinaBaseSpider):
@@ -168,6 +218,10 @@ class SinaStarSpider(SinaBaseSpider):
         return self.start_search_requst('人气偶像团体SNH48成员')
 
     def parse_star_result(self, response):
+        if response.url.find('passport') > -1:
+            yield self.login()
+
+        self.save_cookies_if_need(response)
 
         selector = self.get_star_selector(response, 'pl_personlist')
 
@@ -199,7 +253,8 @@ class SinaStarSpider(SinaBaseSpider):
         if next_url:
             yield scrapy.Request('http://s.weibo.com' + next_url, callback=self.parse_star_result)
 
-    def get_star_selector(self, response, content):
+    @staticmethod
+    def get_star_selector(response, content):
 
         scripts = response.xpath("//script").extract()
 
