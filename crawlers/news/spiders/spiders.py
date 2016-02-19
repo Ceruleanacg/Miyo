@@ -104,11 +104,6 @@ class SinaFeedSpider(SinaBaseSpider):
 
     name = 'sina_feed'
 
-    allowed_domains = ['weibo.com',
-                       'weibo.cn']
-
-    try_count = 0
-
     parms = {
         'ajwvr': '6',
         'domain': '100505',
@@ -129,100 +124,50 @@ class SinaFeedSpider(SinaBaseSpider):
                                    callback=self.parse_feed)]
 
     def parse_login_result(self, response):
-        success = super(SinaFeedSpider, self).parse_login_result(response)
-        if success:
-
-            weibo_url = 'http://weibo.com/p/aj/v6/mblog/mbloglist'
-
-            return [scrapy.FormRequest(weibo_url,
-                                       method='GET',
-                                       formdata=SinaFeedSpider.parms,
-                                       callback=self.parse_feed,
-                                       dont_filter=True)]
-        else:
+        if not super(SinaFeedSpider, self).parse_login_result(response):
             return self.login()
+
+        weibo_url = 'http://weibo.com/p/aj/v6/mblog/mbloglist'
+
+        return [scrapy.FormRequest(weibo_url,
+                                   method='GET',
+                                   formdata=SinaFeedSpider.parms,
+                                   callback=self.parse_feed,
+                                   dont_filter=True)]
 
     def parse_feed(self, response):
         if response.url.find('passport') > -1:
             return self.login()
-        else:
 
-            self.get_and_save_cookies_if_need(response)
+        self.get_and_save_cookies_if_need(response)
 
-            doc = json.loads(response.body)['data']
+        doc = json.loads(response.body)['data']
 
-            print doc
-
+        print doc
 
 
-class SinaStarSpider(Spider):
+
+class SinaStarSpider(SinaBaseSpider):
 
     name = 'sina_star'
 
-    allowed_domains = ['weibo.com',
-                       'weibo.cn']
-
-    try_count = 0
+    def start_search_requst(self, key_word):
+        return scrapy.FormRequest('http://s.weibo.com/user/' + key_word,
+                                  method='GET',
+                                  cookies=self.sina_cookies,
+                                  formdata={'gender': 'women', 'auth': 'per_vip'},
+                                  callback=self.parse_star_result)
 
     def start_requests(self):
-        search_word = '人气偶像团体SNH48成员&gender=women&auth=per_vip'
-        return [scrapy.Request('http://s.weibo.com/user/' + search_word, callback=self.parse_star_result)]
-
-    def parse_login_page(self, response):
-
-        form = response.xpath("//form")
-
-        password = form.xpath(".//input[contains(@name, 'password')]/@name").extract_first()
-
-        captcha_url = response.xpath("//img[contains(@src, 'captcha')]/@src").extract_first()
-
-        captcha_images = []
-        captchas = ""
-
-        if captcha_url:
-            captcha_images = CaptchaHacker.slice(Image.open(urllib.urlopen(captcha_url)).convert('RGB'))
-
-        if captcha_images:
-            captchas = CaptchaHacker.recognize(captcha_images)
-
-        if len(captchas) < 4:
-
-            SinaStarSpider.try_count += 1
-
-            if SinaStarSpider.try_count > 3:
-                Image.open(urllib.urlopen(captcha_url)).convert('RGB').show()
-                captchas = raw_input()
-            else:
-                time.sleep(3)
-                return scrapy.Request('http://login.weibo.cn/login/', callback=self.parse_login_page, dont_filter=True)
-
-        return scrapy.FormRequest.from_response(
-            response,
-            formdata={'mobile': 'ceruleanwang@163.com', password: '1597538426b', 'code': captchas},
-            callback=self.parse_login_result
-        )
+        return [self.start_search_requst('人气偶像团体SNH48成员')]
 
     def parse_login_result(self, response):
-        if response.url.find('vt') > -1:
+        if not super(SinaStarSpider, self).parse_login_result(response):
+            return self.login()
 
-            search_word = '人气偶像团体SNH48成员&gender=women&auth=per_vip'
-
-            return scrapy.Request('http://s.weibo.com/user/' + search_word, callback=self.parse_star_result)
-        else:
-
-            SinaStarSpider.try_count += 1
-
-            time.sleep(3)
-
-            return scrapy.Request('http://login.weibo.cn/login/', callback=self.parse_login_page, dont_filter=True)
+        return self.start_search_requst('人气偶像团体SNH48成员')
 
     def parse_star_result(self, response):
-        if response.url.find('passport') > -1:
-            yield scrapy.FormRequest.from_response(
-                response,
-                formdata={'mobile': 'ceruleanwang@163.com', password: '1597538426b', 'code': captchas},
-                callback=self.parse_login_result
-        )
 
         selector = self.get_star_selector(response, 'pl_personlist')
 
@@ -233,12 +178,14 @@ class SinaStarSpider(Spider):
         for star_selector in star_selectors:
             star_name = star_selector.xpath(".//a[@class='W_texta W_fb']/@title").extract_first()
             star_avatar_url = star_selector.xpath(".//div[@class='person_pic']/a/img/@src").extract_first()
+            star_weibo_url = star_selector.xpath(".//a[@class='W_texta W_fb']/@href").extract_first()
 
             print star_name, star_avatar_url
 
             star_item_loader = ItemLoader(item=SinaStarItem(), response=response)
             star_item_loader.add_value('name', star_name)
             star_item_loader.add_value('avatar_url', star_avatar_url)
+            star_item_loader.add_value('weibo_url', star_weibo_url)
 
             items.append(star_item_loader.load_item())
 
