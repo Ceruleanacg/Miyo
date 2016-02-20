@@ -68,25 +68,38 @@ class NewsHandler(BaseRequestHandler):
 
         feed_type = int(self.get_argument('type'))
 
-        last_news_id = self.get_argument('last_id', None)
+        star_id = self.get_argument('star_id', None)
 
-        last_news = News.objects(id=last_news_id).first() if last_news_id else None
+        last_id = self.get_argument('last_id', None)
+
+        last_news = News.objects(id=last_id).first() if last_id else None
 
         offset_date = last_news.create_date if last_news else datetime.today()
 
-        query_parms = dict(create_date__lt=offset_date)
+        parms = dict()
 
-        if feed_type == FeedType.News or feed_type == FeedType.Post:
-            query_parms['type'] = feed_type
+        parms['create_date__lt'] = offset_date
 
-            query_set = News.objects(**query_parms).order_by('-create_date').limit(15)
-            news_list = []
-
-            for news in query_set:
-                news_list.append(news.to_mongo())
-
-            return self.common_response(SUCCESS_CODE, "获取新闻成功", news_list)
-
+        if star_id:
+            star = Star.objects(id=star_id).first()
+            parms['id__in'] = star.news
         else:
-            return self.common_response(FAILURE_CODE, "未知Feed数据类型")
+            stars = AccountHelper.get_user_by_token(token).following_stars
+            stars = Star.objects(id__in=stars)
 
+            news = []
+
+            for star in stars:
+                news.extend(star.news)
+            parms['id__in'] = news
+
+        if feed_type in FeedType.Types:
+            parms['type'] = feed_type
+
+        query_set = News.objects(**parms).order_by('-create_date').limit(15)
+        news_list = []
+
+        for news in query_set:
+            news_list.append(news.to_mongo())
+
+        return self.common_response(SUCCESS_CODE, "获取新闻成功", news_list)

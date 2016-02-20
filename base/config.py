@@ -20,6 +20,7 @@ DB_NAME = "fanidols"
 
 
 class FeedType(object):
-    All = -1
     News = 0
     Post = 1
+
+    Types = [News, Post]

@@ -144,6 +144,9 @@ class SinaFeedSpider(SinaBaseSpider):
 
         selector = self.get_feed_selector(response, 'WB_feed WB_feed_profile')
 
+        if not selector:
+            yield self.login()
+
         feed_selectors = selector.xpath(".//div[@class='WB_detail']")
 
         for feed_selector in feed_selectors:
