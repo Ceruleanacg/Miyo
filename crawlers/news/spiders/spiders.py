@@ -144,39 +144,38 @@ class SinaFeedSpider(SinaBaseSpider):
 
         selector = self.get_feed_selector(response, 'WB_feed WB_feed_profile')
 
-        if not selector:
-            yield self.login()
+        if selector:
 
-        feed_selectors = selector.xpath(".//div[@class='WB_detail']")
+            feed_selectors = selector.xpath(".//div[@class='WB_detail']")
 
-        for feed_selector in feed_selectors:
-            feed_url = "http://weibo.com" + feed_selector.xpath(".//div[@class='WB_from S_txt2']/a[1]/@href").extract_first()
-            feed_type = 1
-            feed_source = "微博"
-            feed_title = "".join(feed_selector.xpath(".//div[@class='WB_text W_f14']/text()").extract())
-            feed_image_urls = feed_selector.xpath(".//img[contains(@src, 'square')]/@src").extract()
-            feed_article = ""
-            feed_create_date = feed_selector.xpath(".//div[@class='WB_from S_txt2']/a[1]/@title").extract_first() + ":00"
+            for feed_selector in feed_selectors:
+                feed_url = "http://weibo.com" + feed_selector.xpath(".//div[@class='WB_from S_txt2']/a[1]/@href").extract_first()
+                feed_type = 1
+                feed_source = "微博"
+                feed_title = "".join(feed_selector.xpath(".//div[@class='WB_text W_f14']/text()").extract())
+                feed_image_urls = feed_selector.xpath(".//img[contains(@src, 'square')]/@src").extract()
+                feed_article = ""
+                feed_create_date = feed_selector.xpath(".//div[@class='WB_from S_txt2']/a[1]/@title").extract_first() + ":00"
 
-            square_image_count = len(feed_image_urls)
+                square_image_count = len(feed_image_urls)
 
-            for index in xrange(square_image_count):
-                feed_image_urls.append(feed_image_urls[index].replace("square", "bmiddle"))
+                for index in xrange(square_image_count):
+                    feed_image_urls.append(feed_image_urls[index].replace("square", "bmiddle"))
 
-            feed_title = feed_title.lstrip().rstrip()
+                feed_title = feed_title.lstrip().rstrip()
 
-            feed_item_loder = ItemLoader(item=NewsItem(), response=response)
-            feed_item_loder.add_value('url', feed_url)
-            feed_item_loder.add_value('type', feed_type)
-            feed_item_loder.add_value('source', feed_source)
-            feed_item_loder.add_value('title', feed_title)
-            feed_item_loder.add_value('article', feed_article)
-            feed_item_loder.add_value('create_date', datetime.strptime(feed_create_date, "%Y-%m-%d %H:%M:%S"))
-            feed_item_loder.add_value('image_urls', feed_image_urls)
+                feed_item_loder = ItemLoader(item=NewsItem(), response=response)
+                feed_item_loder.add_value('url', feed_url)
+                feed_item_loder.add_value('type', feed_type)
+                feed_item_loder.add_value('source', feed_source)
+                feed_item_loder.add_value('title', feed_title)
+                feed_item_loder.add_value('article', feed_article)
+                feed_item_loder.add_value('create_date', datetime.strptime(feed_create_date, "%Y-%m-%d %H:%M:%S"))
+                feed_item_loder.add_value('image_urls', feed_image_urls)
 
-            item = feed_item_loder.load_item()
+                item = feed_item_loder.load_item()
 
-            yield item
+                yield item
 
     @staticmethod
     def get_feed_selector(response, content):

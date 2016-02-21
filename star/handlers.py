@@ -1,10 +1,8 @@
 # coding=utf-8
 
-import re
-import datetime
 
 from base.requestHandler import *
-from base.model import User, Star, News
+from base.model import Star, News, Comment
 
 
 class FollowHandler(BaseRequestHandler):
@@ -66,15 +64,13 @@ class NewsHandler(BaseRequestHandler):
 
         AccountHelper.verify_token(token)
 
-        feed_type = int(self.get_argument('type'))
+        feed_type = int(self.get_argument('type', -1))
 
         star_id = self.get_argument('star_id', None)
 
         last_id = self.get_argument('last_id', None)
 
-        last_news = News.objects(id=last_id).first() if last_id else None
-
-        offset_date = last_news.create_date if last_news else datetime.today()
+        offset_date = ModelHelper.get_offset_date(News, last_id)
 
         parms = dict()
 
@@ -103,3 +99,68 @@ class NewsHandler(BaseRequestHandler):
             news_list.append(news.to_mongo())
 
         return self.common_response(SUCCESS_CODE, "获取新闻成功", news_list)
+
+
+class CommentHandler(BaseRequestHandler):
+    def post(self, *args, **kwargs):
+        token = self.get_argument('token')
+
+        AccountHelper.verify_token(token)
+
+        user_id = AccountHelper.get_user_by_token(token).id
+
+        news_id = self.get_argument('news_id')
+
+        content = self.get_argument('content')
+
+        news = News.objects(id=news_id).first()
+
+        if not news:
+            return self.common_response(FAILURE_CODE, "评论的新闻不存在")
+
+        comment = Comment()
+        comment.user_id = user_id
+        comment.news_id = news_id
+        comment.create_date = datetime.today()
+        comment.content = content
+        comment.save()
+
+        return self.common_response(SUCCESS_CODE, "评论成功")
+
+    def get(self, *args, **kwargs):
+        # 无需鉴权
+        news_id = self.get_argument('news_id')
+
+        last_id = self.get_argument('last_id', None)
+
+        offset_date = ModelHelper.get_offset_date(Comment, last_id)
+
+        parms = dict()
+
+        parms['create_date__lt'] = offset_date
+        parms['news_id'] = news_id
+
+        query_set = Comment.objects(**parms).order_by('-create_date').limit(15)
+
+        comments = []
+
+        for comment in query_set:
+            comments.append(comment.to_mongo())
+
+        return self.common_response(SUCCESS_CODE, "获取评论成功", comments)
+
+    def delete(self, *args, **kwargs):
+        token = self.get_argument('token')
+
+        AccountHelper.verify_token(token)
+
+        comment_id = self.get_argument('comment_id')
+
+        comment = Comment.objects(id=comment_id).first()
+
+        if not comment:
+            return self.common_response(FAILURE_CODE, "评论不存在")
+
+        comment.delete()
+
+        return self.common_response(SUCCESS_CODE, "评论删除成功")

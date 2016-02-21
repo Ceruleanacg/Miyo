@@ -30,6 +30,21 @@ Redis = redis.Redis(host='localhost', port=6379, db=0)
 base_dir = os.path.dirname(__file__)
 
 
+class ModelHelper(object):
+    @classmethod
+    def get_offset_date(cls, model, last_id):
+
+        offset_date = datetime.today()
+
+        if last_id:
+            last_model = model.objects(id=last_id).first()
+
+            if last_model:
+                offset_date = last_model.create_date
+
+        return offset_date
+
+
 class AccountHelper(object):
 
     # redis 引用自 config.py

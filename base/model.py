@@ -62,3 +62,16 @@ class Star(Document):
 
     news = ListField()
     fans = ListField()
+
+
+class Comment(Document):
+    user_id = ObjectIdField()
+    news_id = ObjectIdField()
+
+    create_date = DateTimeField()
+
+    content = StringField()
+
+    meta = {
+        'indexes': ['create_date']
+    }
