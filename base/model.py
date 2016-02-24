@@ -40,11 +40,11 @@ class News(Document):
 
     read_count = IntField()
 
+    comment_count = IntField()
+
     image_urls = ListField()
 
-    comments = ListField()
-
-    stars = ListField(required=True)
+    star_id = ObjectIdField()
 
     create_date = DateTimeField()
 
@@ -62,6 +62,11 @@ class Star(Document):
 
     news = ListField()
     fans = ListField()
+
+    meta = {
+        'indexes': ['name']
+    }
+
 
 
 class Comment(Document):

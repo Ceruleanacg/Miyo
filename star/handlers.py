@@ -76,9 +76,20 @@ class NewsHandler(BaseRequestHandler):
 
         parms['create_date__lt'] = offset_date
 
+        star_dic_list = []
+
         if star_id:
             star = Star.objects(id=star_id).first()
+
             parms['id__in'] = star.news
+
+            star_dic = star.to_mongo()
+            star_dic.pop('news')
+            star_dic.pop('fans')
+            star_dic['fans_count'] = len(star.fans)
+
+            star_dic_list.append({star.id: star_dic})
+
         else:
             stars = AccountHelper.get_user_by_token(token).following_stars
             stars = Star.objects(id__in=stars)
@@ -87,6 +98,14 @@ class NewsHandler(BaseRequestHandler):
 
             for star in stars:
                 news.extend(star.news)
+
+                star_dic = star.to_mongo()
+                star_dic.pop('news')
+                star_dic.pop('fans')
+                star_dic['fans_count'] = len(star.fans)
+
+                star_dic_list.append({star.id: star_dic})
+
             parms['id__in'] = news
 
         if feed_type in FeedType.Types:
@@ -96,7 +115,17 @@ class NewsHandler(BaseRequestHandler):
         news_list = []
 
         for news in query_set:
-            news_list.append(news.to_mongo())
+
+            star_dic = star_dic_list[news.star_id]
+
+            news_dic = news.to_mongo()
+            news_dic.pop('star_id')
+            news['star'] = star_dic
+
+            news.read_count += 1
+            news.save()
+
+            news_list.append(news_dic)
 
         return self.common_response(SUCCESS_CODE, "获取新闻成功", news_list)
 
@@ -117,6 +146,9 @@ class CommentHandler(BaseRequestHandler):
 
         if not news:
             return self.common_response(FAILURE_CODE, "评论的新闻不存在")
+
+        news.comment_count += 1
+        news.save()
 
         comment = Comment()
         comment.user_id = user_id
@@ -160,6 +192,10 @@ class CommentHandler(BaseRequestHandler):
 
         if not comment:
             return self.common_response(FAILURE_CODE, "评论不存在")
+
+        news = News.objects(id=comment.news_id).first()
+        news.comment_count -= 1
+        news.save()
 
         comment.delete()
 

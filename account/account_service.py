@@ -12,13 +12,13 @@ define("port", default=8000, type=int)
 
 if __name__ == "__main__":
     tornado.options.parse_command_line()
-    app = tornado.web.Application(handlers=[(r"/account/smscode", SmscodeHandler),
-                                            (r"/account/register", RegisterHandler),
-                                            (r"/account/login", LoginHandler),
-                                            (r"/account/forget", ForgetHandler),
-                                            (r"/account/password", PasswordHandler),
-                                            (r"/account/info", InfoHandler),
-                                            (r"/account/province", ProvinceHandler)])
+    app = tornado.web.Application(handlers=[(r"/v1/account/smscode", SmscodeHandler),
+                                            (r"/v1/account/register", RegisterHandler),
+                                            (r"/v1/account/login", LoginHandler),
+                                            (r"/v1/account/forget", ForgetHandler),
+                                            (r"/v1/account/password", PasswordHandler),
+                                            (r"/v1/account/info", InfoHandler),
+                                            (r"/v1/account/province", ProvinceHandler)])
 
     http_server = tornado.httpserver.HTTPServer(app)
     http_server.listen(options.port)

@@ -96,7 +96,7 @@ class Tools(object):
     def md5(cls, raw_str):
         m = hashlib.md5()
         m.update(raw_str)
-        return m.hexdigest()
+        return m.hexdigest().upper()
 
 
 class CaptchaHacker(object):

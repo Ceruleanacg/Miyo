@@ -26,7 +26,7 @@ class NewsPipeline(object):
 
                 news = News(**dict(item))
 
-                news.stars.append(star.id)
+                news.star_id = star.id
                 news.save()
 
                 star.news.append(news.id)
@@ -50,7 +50,7 @@ class NewsPipeline(object):
 
                 feed = News(**dict(item))
 
-                feed.stars.append(star.id)
+                feed.star_id = star.id
                 feed.save()
 
                 star.news.append(feed.id)
