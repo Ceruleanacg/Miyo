@@ -76,7 +76,7 @@ class NewsHandler(BaseRequestHandler):
 
         parms['create_date__lt'] = offset_date
 
-        star_dic_list = []
+        star_dic_list = dict()
 
         if star_id:
             star = Star.objects(id=star_id).first()
@@ -88,7 +88,7 @@ class NewsHandler(BaseRequestHandler):
             star_dic.pop('fans')
             star_dic['fans_count'] = len(star.fans)
 
-            star_dic_list.append({star.id: star_dic})
+            star_dic_list[str(star.id)] = star_dic
 
         else:
             stars = AccountHelper.get_user_by_token(token).following_stars
@@ -104,7 +104,7 @@ class NewsHandler(BaseRequestHandler):
                 star_dic.pop('fans')
                 star_dic['fans_count'] = len(star.fans)
 
-                star_dic_list.append({star.id: star_dic})
+                star_dic_list[str(star.id)] = star_dic
 
             parms['id__in'] = news
 
@@ -116,11 +116,11 @@ class NewsHandler(BaseRequestHandler):
 
         for news in query_set:
 
-            star_dic = star_dic_list[news.star_id]
+            star_dic = star_dic_list[str(news.star_id)]
 
             news_dic = news.to_mongo()
             news_dic.pop('star_id')
-            news['star'] = star_dic
+            news_dic['star'] = star_dic
 
             news.read_count += 1
             news.save()

@@ -36,13 +36,13 @@ class News(Document):
 
     title = StringField()
 
-    article = StringField()
+    article = StringField(default="")
 
     read_count = IntField()
 
     comment_count = IntField()
 
-    image_urls = ListField()
+    image_urls = ListField(default=[])
 
     star_id = ObjectIdField()
 

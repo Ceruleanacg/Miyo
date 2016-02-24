@@ -28,7 +28,7 @@ class NewsItem(Item):
     )
 
     article = Field(
-        output_processor=Join('')
+        output_processor=TakeFirst()
     )
 
     create_date = Field(

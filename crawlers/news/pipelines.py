@@ -31,6 +31,11 @@ class NewsPipeline(object):
 
                 star.news.append(news.id)
                 star.save()
+            else:
+                news.image_urls = item['image_urls']
+                news.title = item['title']
+                news.article = item['article']
+                news.save()
 
         elif spider.name == 'sina_feed':
             if not item['url']:

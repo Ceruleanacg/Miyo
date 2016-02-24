@@ -275,7 +275,7 @@ class SibaNewsSpider(CrawlSpider):
     start_urls = ['http://www.snh48.com/html/allnews/']
 
     parse_regex = '(gongyan|woshouhui|cd|zixun|activity)/201[3-6]/(\d){4}/(.)+'
-    follow_regex = '[1].html'
+    follow_regex = '[\d]+.html'
 
     parse_rule = Rule(
         LinkExtractor(allow=[parse_regex]),
@@ -296,8 +296,15 @@ class SibaNewsSpider(CrawlSpider):
             news_url = response.url
             news_type = 0
             news_title = target.xpath(".//div[@class='s_nt_txt']/text()").extract_first()
-            news_article = target.xpath(".//div[@class='s_new_con']/div/span/span/text()").extract()
-            news_image_urls = target.xpath(".//img[contains(@src, 'newsimg')]/@src").extract()
+
+            content_target = target.xpath(".//div[@class='s_new_con']")
+
+            news_article = content_target.xpath(".//div/span/span/text()").extract()
+
+            if not news_article:
+                news_article = content_target.xpath(".//span/span/text()").extract()
+
+            news_image_urls = content_target.xpath(".//img[contains(@src, 'newsimg')]/@src").extract()
 
             news_create_year = news_url.split('/')[-3]
             news_create_month = news_url.split('/')[-2][0:2]
@@ -305,19 +312,21 @@ class SibaNewsSpider(CrawlSpider):
 
             news_create_date = news_create_year + '-' + news_create_month + '-' + news_create_day + ' ' + '00:00:00'
 
-            news_title = news_title.strip()
+            news_title = news_title.lstrip().rstrip()
 
             articles = []
 
             for article in news_article:
-                articles.append(article.strip())
+                articles.append(article.lstrip().rstrip())
+
+            article = "".join(articles)
 
             siba_item_loder = ItemLoader(item=NewsItem(), response=response)
             siba_item_loder.add_value('url', news_url)
             siba_item_loder.add_value('type', news_type)
             siba_item_loder.add_value('source', "官网")
             siba_item_loder.add_value('title', news_title)
-            siba_item_loder.add_value('article', articles)
+            siba_item_loder.add_value('article', article)
             siba_item_loder.add_value('create_date', datetime.strptime(news_create_date, "%Y-%m-%d %H:%M:%S"))
             siba_item_loder.add_value('image_urls', news_image_urls)
 
