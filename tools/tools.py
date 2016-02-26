@@ -44,6 +44,21 @@ class ModelHelper(object):
 
         return offset_date
 
+    @classmethod
+    def generate_comment_dic(cls, comment):
+        user = User.objects(id=comment.user_id).first()
+
+        user_dic = user.to_mongo()
+        user_dic.pop('username')
+        user_dic.pop('password')
+
+        comment_dic = comment.to_mongo()
+        comment_dic.pop('user_id')
+        comment_dic.pop('news_id')
+        comment_dic['user'] = user_dic
+
+        return comment_dic
+
 
 class AccountHelper(object):
 

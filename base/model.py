@@ -8,7 +8,9 @@ connect(host="mongodb://Shuyu:Wangshuyu1993@localhost/fanidols")
 class User(Document):
     username = StringField()
     password = StringField()
-    nick_name = StringField()
+    nickname = StringField(default='とある热心の応援同学')
+
+    avatar_url = StringField()
 
     # sex : 0男, 1女
     sex = IntField(0, 1, default=0)
@@ -38,9 +40,9 @@ class News(Document):
 
     article = StringField(default="")
 
-    read_count = IntField()
+    read_count = IntField(default=0)
 
-    comment_count = IntField()
+    comment_count = IntField(default=0)
 
     image_urls = ListField(default=[])
 

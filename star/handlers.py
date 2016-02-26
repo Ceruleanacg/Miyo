@@ -147,6 +147,9 @@ class CommentHandler(BaseRequestHandler):
         if not news:
             return self.common_response(FAILURE_CODE, "评论的新闻不存在")
 
+        if len(content) > 255:
+            return self.common_response(FAILURE_CODE, "评论字数不能大于255个字")
+
         news.comment_count += 1
         news.save()
 
@@ -177,7 +180,8 @@ class CommentHandler(BaseRequestHandler):
         comments = []
 
         for comment in query_set:
-            comments.append(comment.to_mongo())
+            comment_dic = ModelHelper.generate_comment_dic(comment)
+            comments.append(comment_dic)
 
         return self.common_response(SUCCESS_CODE, "获取评论成功", comments)
 

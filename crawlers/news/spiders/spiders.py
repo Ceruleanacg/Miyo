@@ -159,8 +159,10 @@ class SinaFeedSpider(SinaBaseSpider):
 
                 square_image_count = len(feed_image_urls)
 
+                feed_middle_image_urls = []
+
                 for index in xrange(square_image_count):
-                    feed_image_urls.append(feed_image_urls[index].replace("square", "bmiddle"))
+                    feed_middle_image_urls.append(feed_image_urls[index].replace("square", "bmiddle"))
 
                 feed_title = feed_title.lstrip().rstrip()
 
@@ -171,7 +173,7 @@ class SinaFeedSpider(SinaBaseSpider):
                 feed_item_loder.add_value('title', feed_title)
                 feed_item_loder.add_value('article', feed_article)
                 feed_item_loder.add_value('create_date', datetime.strptime(feed_create_date, "%Y-%m-%d %H:%M:%S"))
-                feed_item_loder.add_value('image_urls', feed_image_urls)
+                feed_item_loder.add_value('image_urls', feed_middle_image_urls)
 
                 item = feed_item_loder.load_item()
 
