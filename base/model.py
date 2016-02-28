@@ -20,6 +20,10 @@ class User(Document):
 
     following_stars = ListField()
 
+    meta = {
+        'indexes': ['following_stars']
+    }
+
 
 class Province(Document):
     ProID = IntField()
@@ -66,7 +70,7 @@ class Star(Document):
     fans = ListField()
 
     meta = {
-        'indexes': ['name']
+        'indexes': ['name', 'news']
     }
 
 

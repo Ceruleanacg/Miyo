@@ -12,14 +12,14 @@ class FollowHandler(BaseRequestHandler):
 
         AccountHelper.verify_token(token)
 
-        user = AccountHelper.get_user_by_token(token)
+        user = AccountHelper.get_user_by_token(token, 'following_stars')
 
         star_id = self.get_argument('star_id')
 
         if ObjectId(star_id) in user.following_stars:
             return self.common_response(FAILURE_CODE, "已经关注该明星")
 
-        star = Star.objects(id=star_id).first()
+        star = Star.objects(id=star_id).only('fans').first()
 
         if not star:
             return self.common_response(FAILURE_CODE, "该明星不存在")
@@ -39,12 +39,12 @@ class FollowHandler(BaseRequestHandler):
 
         star_id = self.get_argument('star_id')
 
-        user = AccountHelper.get_user_by_token(token)
+        user = AccountHelper.get_user_by_token(token, 'following_stars')
 
         if ObjectId(star_id) not in user.following_stars:
             return self.common_response(FAILURE_CODE, "没有关注该明星")
 
-        star = Star.objects(id=star_id).first()
+        star = Star.objects(id=star_id).only('fans').first()
 
         if not star:
             return self.common_response(FAILURE_CODE, "该明星不存在")
@@ -59,6 +59,7 @@ class FollowHandler(BaseRequestHandler):
 
 
 class NewsHandler(BaseRequestHandler):
+
     def get(self, *args, **kwargs):
         token = self.get_argument('token')
 
@@ -79,19 +80,16 @@ class NewsHandler(BaseRequestHandler):
         star_dic_list = dict()
 
         if star_id:
-            star = Star.objects(id=star_id).first()
+            star = Star.objects(id=star_id).exclude('fans').first()
 
             parms['id__in'] = star.news
 
-            star_dic = star.to_mongo()
-            star_dic.pop('news')
-            star_dic.pop('fans')
-            star_dic['fans_count'] = len(star.fans)
+            star_dic = ModelHelper.generate_star_dic(star)
 
             star_dic_list[str(star.id)] = star_dic
 
         else:
-            stars = AccountHelper.get_user_by_token(token).following_stars
+            stars = AccountHelper.get_user_by_token(token, 'following_stars').following_stars
             stars = Star.objects(id__in=stars)
 
             news = []
@@ -99,10 +97,7 @@ class NewsHandler(BaseRequestHandler):
             for star in stars:
                 news.extend(star.news)
 
-                star_dic = star.to_mongo()
-                star_dic.pop('news')
-                star_dic.pop('fans')
-                star_dic['fans_count'] = len(star.fans)
+                star_dic = ModelHelper.generate_star_dic(star)
 
                 star_dic_list[str(star.id)] = star_dic
 
@@ -136,13 +131,13 @@ class CommentHandler(BaseRequestHandler):
 
         AccountHelper.verify_token(token)
 
-        user_id = AccountHelper.get_user_by_token(token).id
+        user_id = AccountHelper.get_user_by_token(token, 'id').id
 
         news_id = self.get_argument('news_id')
 
         content = self.get_argument('content')
 
-        news = News.objects(id=news_id).first()
+        news = News.objects(id=news_id).only('comment_count').first()
 
         if not news:
             return self.common_response(FAILURE_CODE, "评论的新闻不存在")
@@ -204,3 +199,25 @@ class CommentHandler(BaseRequestHandler):
         comment.delete()
 
         return self.common_response(SUCCESS_CODE, "评论删除成功")
+
+
+class StarsHandler(BaseRequestHandler):
+    def get(self, *args, **kwargs):
+
+        token = self.get_argument('token')
+
+        AccountHelper.verify_token(token)
+
+        keyword = self.get_argument('keyword')
+
+        parms = {}
+        parms['name__contains'] = keyword
+
+        stars = Star.objects(**parms).only('name', 'avatar_url')
+
+        stars_list = []
+
+        for star in stars:
+            stars_list.append(star.to_mongo())
+
+        return self.common_response(SUCCESS_CODE, "明星列表获取成功", stars_list)

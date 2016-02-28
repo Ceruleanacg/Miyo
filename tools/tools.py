@@ -37,7 +37,7 @@ class ModelHelper(object):
         offset_date = datetime.today()
 
         if last_id:
-            last_model = model.objects(id=last_id).first()
+            last_model = model.objects(id=last_id).only('create_date').first()
 
             if last_model:
                 offset_date = last_model.create_date
@@ -46,18 +46,26 @@ class ModelHelper(object):
 
     @classmethod
     def generate_comment_dic(cls, comment):
-        user = User.objects(id=comment.user_id).first()
+        user = User.objects(id=comment.user_id).exclude('username', 'password').first()
 
         user_dic = user.to_mongo()
-        user_dic.pop('username')
-        user_dic.pop('password')
 
         comment_dic = comment.to_mongo()
         comment_dic.pop('user_id')
         comment_dic.pop('news_id')
+
         comment_dic['user'] = user_dic
 
         return comment_dic
+
+    @classmethod
+    def generate_star_dic(cls, star):
+
+        star_dic = star.to_mongo()
+        star_dic.pop('news')
+        star_dic['fans_count'] = len(star.fans)
+
+        return star_dic
 
 
 class AccountHelper(object):
@@ -66,9 +74,14 @@ class AccountHelper(object):
     redis = Redis
 
     @classmethod
-    def get_user_by_token(cls, token):
+    def get_user_by_token(cls, token, *only_field):
         object_id = cls.redis.get(token + TOKEN_TO_ID_SUFFIX)
-        user = User.objects(id=object_id).first()
+
+        if only_field:
+            user = User.objects(id=object_id).only(*only_field).first()
+        else:
+            user = User.objects(id=object_id).first()
+
         return user
 
     @classmethod
