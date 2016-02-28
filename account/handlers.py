@@ -4,7 +4,7 @@ import re
 
 from base.requestHandler import *
 
-from base.model import Province
+from base.model import Province, News, Star
 
 
 class SmscodeHandler(BaseRequestHandler):
@@ -173,13 +173,20 @@ class InfoHandler(BaseRequestHandler):
 
         # 用户有可能被删除, 需要检查是否存在
 
-        user_dic = user.to_mongo()
-        user_dic.pop('password')
+        if not user:
+            return self.common_response(FAILURE_CODE, "用户不存在!")
 
-        if user:
-            self.common_response(SUCCESS_CODE, "用户信息获取成功!", user_dic)
-        else:
-            self.common_response(FAILURE_CODE, "用户不存在!")
+        user_dic = user.to_mongo()
+
+        user_dic['follow_count'] = len(user.following_stars)
+        user_dic['favo_count'] = len(user.favorite_news)
+
+        user_dic.pop('password')
+        user_dic.pop('username')
+        user_dic.pop('following_stars')
+        user_dic.pop('favorite_news')
+
+        self.common_response(SUCCESS_CODE, "用户信息获取成功!", user_dic)
 
 
 class ProvinceHandler(BaseRequestHandler):
@@ -196,3 +203,40 @@ class ProvinceHandler(BaseRequestHandler):
 
         self.common_response(SUCCESS_CODE, "省份信息获取成功!", province_list)
 
+
+class FavoriteHandler(BaseRequestHandler):
+    def get(self, *args, **kwargs):
+
+        token = self.get_argument('token')
+
+        AccountHelper.verify_token(token)
+
+        last_id = self.get_argument('last_id', None)
+
+        offset_date = ModelHelper.get_offset_date(News, last_id)
+
+        parms = dict()
+
+        parms['create_date__lt'] = offset_date
+
+        user = AccountHelper.get_user_by_token(token, 'favorite_news')
+
+        parms['id__in'] = user.favorite_news
+
+        query_set = News.objects(**parms).order_by('-create_date').limit(15)
+        news_list = []
+
+        for news in query_set:
+
+            star = Star.objects(id=news.star_id).exclude('news', 'fans').first()
+
+            news_dic = news.to_mongo()
+            news_dic.pop('star_id')
+            news_dic['star'] = star.to_mongo()
+
+            news.read_count += 1
+            news.save()
+
+            news_list.append(news_dic)
+
+        return self.common_response(SUCCESS_CODE, '获取收藏成功', news_list)

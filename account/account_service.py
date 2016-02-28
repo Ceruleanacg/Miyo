@@ -18,7 +18,8 @@ if __name__ == "__main__":
                                             (r"/v1/account/forget", ForgetHandler),
                                             (r"/v1/account/password", PasswordHandler),
                                             (r"/v1/account/info", InfoHandler),
-                                            (r"/v1/account/province", ProvinceHandler)])
+                                            (r"/v1/account/province", ProvinceHandler),
+                                            (r"/v1/account/favo", FavoriteHandler)])
 
     http_server = tornado.httpserver.HTTPServer(app)
     http_server.listen(options.port)

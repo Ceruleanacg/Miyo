@@ -6,14 +6,14 @@ import tornado.options
 import tornado.web
 
 from tornado.options import define, options
-from star.handlers import *
+from news.handlers import *
 
 define("port", default=8000, type=int)
 
 if __name__ == "__main__":
     tornado.options.parse_command_line()
-    app = tornado.web.Application(handlers=[(r"/v1/star/follow", FollowHandler),
-                                            (r"/v1/star/stars", StarsHandler)])
+    app = tornado.web.Application(handlers=[(r"/v1/news/feed", NewsHandler),
+                                            (r"/v1/news/comment", CommentHandler)])
 
     http_server = tornado.httpserver.HTTPServer(app)
     http_server.listen(options.port)
