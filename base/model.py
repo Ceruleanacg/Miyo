@@ -2,7 +2,7 @@
 
 from mongoengine import *
 
-connect(host="mongodb://Shuyu:Wangshuyu1993@localhost/fanidols")
+connect(host="mongodb://Shuyu:Wangshuyu1993@localhost/ouenu")
 
 
 class User(Document):
