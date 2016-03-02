@@ -3,7 +3,6 @@ appnope==0.1.0
 backports-abc==0.4
 backports.ssl-match-hostname==3.5.0.1
 bdist-mpkg==0.5.0
-bonjour-py==0.3
 certifi==2015.11.20.1
 cffi==1.4.2
 characteristic==14.3.0
