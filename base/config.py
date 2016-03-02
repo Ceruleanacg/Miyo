@@ -16,8 +16,6 @@ ID_TO_TOKEN_SUFFIX = "_ID_TO_TOKEN"
 
 HOST = 'localhost'
 
-DB_NAME = "fanidols"
-
 
 class FeedType(object):
     News = 0
