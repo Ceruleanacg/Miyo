@@ -5,16 +5,18 @@ import tornado.ioloop
 import tornado.options
 import tornado.web
 
-from tornado.options import define, options
+import sys
+
 from news.handlers import *
 
-define("port", default=8000, type=int)
 
 if __name__ == "__main__":
     tornado.options.parse_command_line()
     app = tornado.web.Application(handlers=[(r"/v1/news/feed", NewsHandler),
                                             (r"/v1/news/comment", CommentHandler)])
 
+    port = sys.argv[1]
+
     http_server = tornado.httpserver.HTTPServer(app)
-    http_server.listen(options.port)
+    http_server.listen(port)
     tornado.ioloop.IOLoop.instance().start()

@@ -5,10 +5,9 @@ import tornado.ioloop
 import tornado.options
 import tornado.web
 
-from tornado.options import define, options
-from account.handlers import *
+import sys
 
-define("port", default=8000, type=int)
+from account.handlers import *
 
 if __name__ == "__main__":
     tornado.options.parse_command_line()
@@ -21,6 +20,8 @@ if __name__ == "__main__":
                                             (r"/v1/account/province", ProvinceHandler),
                                             (r"/v1/account/favo", FavoriteHandler)])
 
+    port = sys.argv[1]
+
     http_server = tornado.httpserver.HTTPServer(app)
-    http_server.listen(options.port)
+    http_server.listen(port)
     tornado.ioloop.IOLoop.instance().start()
